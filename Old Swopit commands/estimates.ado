@@ -1,9 +1,9 @@
 version 14
 mata
 function classify(string varlist, string AtClasses) {
-
+	list = tokens(AtClasses)
 	y = st_data(., varlist)
-	X = st_data(., AtClasses)
+	X = st_data(., list)
 	allcat = uniqrows(y)
 	rowMax = rowmax(X)
 	nrow = rows(X)

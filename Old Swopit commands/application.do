@@ -1,5 +1,5 @@
 // SPECIFY TO THE LOCATION OF YOUR FILES // 
-cd "/Users/jhuismans/Desktop/Swopit/Classify/Old Swopit commands"
+cd "C:\Users\janwi\OneDrive\Documents\Classify\Classify\Old Swopit commands"
 mata: mata clear
 
 // RUN FILES NEEDED FOR ESTIMATION // 
@@ -13,3 +13,7 @@ oprobit y_gen bias house gdp spread
 predict p1 p2 p3
 classify y, var(p1 p2 p3)
 classify y_gen, var(p1 p2 p3)
+drop p1
+drop p2
+drop p3
+classify y, pred
