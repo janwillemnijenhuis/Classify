@@ -8,6 +8,7 @@ run helpfunctest.ado
 run estimates.ado
 run classify.ado
 use policy_rate.dta
-oprobit y bias house gdp spread
+gen y_gen = y + 3
+oprobit y_gen bias house gdp spread
 predict p1 p2 p3
-classify y, var(p1 p2 p3)
+classify y_gen, var(p1 p2 p3)
