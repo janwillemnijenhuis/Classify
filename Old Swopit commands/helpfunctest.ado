@@ -14,6 +14,14 @@ function running_rowsum(input_matrix) {
 	return(result)
 }
 
+void print_vector(text, elements) {
+	printf(text)
+	for(i=1;i<=cols(elements);i++) {
+		printf("{bf:%9.4f}", elements[i])
+	}
+	printf("\n")
+}	
+
 void print_matrix(contents, rownames, colnames, | uline, lline, mline, digits, rowtitle, coltitle) {
 	// because Stata cannot display matrices with dots in colnames, we need our own printing function!
 	n = rows(contents)

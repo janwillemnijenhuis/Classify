@@ -9,6 +9,7 @@ run estimates.ado
 run classify.ado
 use policy_rate.dta
 gen y_gen = y + 3
+// gen y_gen = char(y + 66)
 oprobit y_gen bias house gdp spread
 predict p1 p2 p3
 classify y, var(p1 p2 p3)
