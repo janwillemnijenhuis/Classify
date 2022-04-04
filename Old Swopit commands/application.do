@@ -1,5 +1,7 @@
 // SPECIFY TO THE LOCATION OF YOUR FILES // 
-cd "C:\Users\janwi\OneDrive\Documents\Classify\Classify\Old Swopit commands"
+//cd "C:\Users\janwi\OneDrive\Documents\Classify\Classify\Old Swopit commands"
+cd "/Users/jhuismans/Desktop/Swopit/Classify/Old Swopit commands"
+
 mata: mata clear
 
 // RUN FILES NEEDED FOR ESTIMATION // 

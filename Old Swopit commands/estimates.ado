@@ -5,6 +5,7 @@ function classify(string varlist, string AtClasses) {
 	y = st_data(., varlist)
 	X = st_data(., list)
 	allcat = uniqrows(y)
+	ncat = rows(allcat)
 	rowMax = rowmax(X)
 	nrow = rows(X)
 	ncol = cols(X)
@@ -79,6 +80,7 @@ function classify(string varlist, string AtClasses) {
 		false_neg_k[i] = rowsum_conf_mat[i] - conf_mat[i,i]
 		true_neg_k[i] = nrow - true_pos_k[i] - false_pos_k[i] - false_neg_k[i]
 	}
+
 	precision_k = true_pos_k:/(true_pos_k :+ false_pos_k)
 	nega_pred_val_k = true_neg_k:/(true_neg_k:+false_neg_k)
 	recall_k = true_pos_k:/(true_pos_k:+false_neg_k)
@@ -114,31 +116,33 @@ function classify(string varlist, string AtClasses) {
 	symmetric_extr_dep_score_k = (log((true_pos_k :+ false_neg_k) :/ nrow) :+ log((true_pos_k :+ true_neg_k) :/ nrow)) :/ log(true_pos_k :/ nrow) :- 1
 	prev_threshold_k = sqrt(false_pos_rate_k):/(sqrt(false_pos_rate_k):+sqrt(recall_k))
 	adj_noise_to_signal_k = false_pos_rate_k:/recall_k
-	
-	// macro measures
-	prec_macro = sum(precision_k)/ncol
-	recall_macro = sum(recall_k)/ncol
-	f1_macro = 2*(prec_macro*recall_macro)/(prec_macro+recall_macro)
-	fb_macro = (1+beta^2)*(prec_macro*recall_macro)/(beta^2*(prec_macro+recall_macro))
-	fowlkes_mallows_index = sqrt(prec_macro+recall_macro)
-	
-	// weighted averages (do we want to do this?)
-	// also do we want each confusion matrix class specific?
-		
-	// brier score
+
+
+	// brier/logarithmic/spherical score
+
 	brier_vec = J(nrow, 1, 0)
+	logscore_vec = J(nrow, 1, 0)
+	spher_vec = J(nrow, 1, 0)
+
 	for (i=1;i<=nrow;i++) {
-		for (j=1;j<=ncol;j++) {
+	for (j=1;j<=ncol;j++) {
 			if (y[i] == j) {
 				brier_vec[i] = brier_vec[i] + (1 - X[i,j])^2
+				logscore_vec[i] = logscore_vec[i] - log(X[i,j])
+				spher_vec[i] = spher_vec[i] + X[i,j]/(sqrt((X[i,j])^2 + (1-X[i,j])^2))
 			} else {
 				brier_vec[i] = brier_vec[i] + (0 - X[i,j])^2
+				logscore_vec[i] = logscore_vec[i] - log(1 - X[i,j])
+				spher_vec[i] = spher_vec[i] + (1 - X[i,j])/(sqrt( (X[i,j])^2 + (1-X[i,j])^2))
 			}
 		}
 	}
 	brier_score = sum(brier_vec)/nrow
+	log_score = sum(logscore_vec)/nrow
+	spherical_score = sum(spher_vec)/nrow
 
 	ranked_probability_score = matrix_mse(running_rowsum(X) - running_rowsum(q))
+
 
 	tot = sum(conf_mat)
  	all_pos = colsum(conf_mat)'
@@ -157,6 +161,7 @@ function classify(string varlist, string AtClasses) {
  	n2s = noise :/ recall
 	
  	result = precision, recall, n2s
+
 	displayas("txt")
 	printf("\nConfusion Matrix\n")
  	print_matrix(conf_mat, rowstripes, colstripes,., ., ., 0, rowtitle, coltitle)
@@ -164,61 +169,85 @@ function classify(string varlist, string AtClasses) {
  	colname = "Precision" \  "Recall" \  "Adj. noise-to-signal"
  	rowname = "y=" :+ strofreal(allcat) 
  	print_matrix(result, rowname, colname,., ., ., 4, ., .)
- 	displayas("txt")
- 	printf("\nMulticlass metrics\n")
- 	printf("Accuracy                 = {bf:%9.4f} \n", accuracy)
-	printf("Misclassification rate	 = {bf:%9.4f} \n", misclassification_rate)
-	printf("Balanced accuracy   	 = {bf:%9.4f} \n", balanced_acc)
-	printf("Correlation (Matthew)    = {bf:%9.4f} \n", corr_matthew)
-	printf("Cohen's kappa coefficient= {bf:%9.4f} \n", cohen_kappa)
-	printf("Scott's pi coefficient   = {bf:%9.4f} \n", scott_pi)
-	printf("Peirce's skill score     = {bf:%9.4f} \n", peirce_skill_score)
-	printf("Clayton skill score      = {bf:%9.4f} \n", clayton_skill_score)
-	       
-	printf("\nClass specific metrics\n")
-	print_vector("Precision                = ", precision_k)
-	print_vector("Negative predicted value = ", nega_pred_val_k)
-	print_vector("Recall                   = ", recall_k)
-	print_vector("Specificity              = ", specificity_k)
-	print_vector("Balanced accuracy        = ", balanced_acc_k)
-	print_vector("Prevalence               = ", prevalence_k)
-	print_vector("False positive rate      = ", false_pos_k)
-	print_vector("False alarm rate         = ", false_alarm_rate_k)
-	print_vector("False negative rate      = ", false_neg_rate_k)
-	print_vector("False omission rate      = ", false_omm_rate_k)
-	print_vector("Bias score               = ", bias_score_k)
-	print_vector("Positive likelihood ratio= ", pos_lik_ratio_k)
-	print_vector("Negative likelihood ratio= ", neg_lik_ratio_k)
-	print_vector("Youden's J statistic     = ", youden_j_k)  
-	print_vector("Markedness               = ", markedness_k)
-	print_vector("Informedness             = ", informedness_k)
-	print_vector("Diagnostic odds ratio    = ", diagnostic_odds_k)
-	print_vector("Yule's Q coefficient     = ", yule_q_coeff_k)
-	print_vector("Yule's Y coefficient     = ", yule_y_coeff_k)
-	print_vector("Fowlkes-Mallows index    = ", fowlkes_mallows_k)
-	print_vector("F1-score                 = ", f1_score_k)
-	print_vector("FB-score	               = ", fb_score_k)
-	print_vector("Correlation (Matthews)   = ", matthew_corr_k)
-	print_vector("Threat score             = ", threat_k)
-	print_vector("Gilbert Skill Score      = ", gilbert_skill_score_k)
-	print_vector("Scott's pi coefficient   = ", scott_pi_k)
-	print_vector("Peirce's skill score     = ", peirce_skill_score_k)
-	print_vector("Cohen's kappa coefficient= ", cohen_kappa_k)
-	print_vector("Clayton Skill Score      = ", clayton_skill_score_k)
-	print_vector("Extreme dependency score = ", extr_dep_score_k)
-	print_vector("Symm. extr. dep. score   = ", symmetric_extr_dep_score_k)
-	print_vector("Prevalence threshold     = ", prev_threshold_k)
-	print_vector("Adj. N2S ratio           = ", adj_noise_to_signal_k)
-	
-	printf("\nMacro averages of class-specific metrics\n")
-	printf("F1-score                 = {bf:%9.4f}\n", f1_macro)
-	printf("FB-score                 = {bf:%9.4f}\n", fb_macro)
-	printf("Fowlkes-Mallows index    = {bf:%9.4f}\n", fowlkes_mallows_index)
-	
-	
-	printf("\nOther\n")
- 	printf("Brier score              = {bf:%9.4f} \n", brier_score)
+
+	displayas("txt")
+	printf("\nProbabilistic Forecasts metrics\n")
+	printf("Brier score              = {bf:%9.4f} \n", brier_score)
+	printf("Logarithmic score        = {bf:%9.4f} \n", log_score)
+	printf("Spherical score          = {bf:%9.4f} \n", spherical_score)
  	printf("Ranked probability score = {bf:%9.4f} \n", ranked_probability_score)
+
+
+	if(ncat > 2){
+		// macro measures
+		prec_macro = sum(precision_k)/ncol
+		recall_macro = sum(recall_k)/ncol
+		f1_macro = 2*(prec_macro*recall_macro)/(prec_macro+recall_macro)
+		fb_macro = (1+beta^2)*(prec_macro*recall_macro)/(beta^2*(prec_macro+recall_macro))
+		fowlkes_mallows_index = sqrt(prec_macro+recall_macro)
+	
+		// weighted averages (do we want to do this?)
+		// also do we want each confusion matrix class specific?
+
+ 		displayas("txt")
+ 		printf("\nMulticlass metrics\n")
+ 		printf("Accuracy                 = {bf:%9.4f} \n", accuracy)
+		printf("Misclassification rate	 = {bf:%9.4f} \n", misclassification_rate)
+		printf("Balanced accuracy   	 = {bf:%9.4f} \n", balanced_acc)
+		printf("Correlation (Matthew)    = {bf:%9.4f} \n", corr_matthew)
+		printf("Cohen's kappa coefficient= {bf:%9.4f} \n", cohen_kappa)
+		printf("Scott's pi coefficient   = {bf:%9.4f} \n", scott_pi)
+		printf("Peirce's skill score     = {bf:%9.4f} \n", peirce_skill_score)
+		printf("Clayton skill score      = {bf:%9.4f} \n", clayton_skill_score)
+		printf("\nClass specific metrics\n")
+		printrows = 1
+	}else{
+		printf("\nBinary metrics\n")
+		printf("Accuracy                 = {bf:%9.4f} \n", accuracy)
+		printf("Misclassification rate	 = {bf:%9.4f} \n", misclassification_rate)
+		printrows = 2
+	}
+
+	print_vector("Precision                = ", precision_k[printrows::ncat])
+	print_vector("Negative predicted value = ", nega_pred_val_k[printrows::ncat])
+	print_vector("Recall                   = ", recall_k[printrows::ncat])
+	print_vector("Specificity              = ", specificity_k[printrows::ncat])
+	print_vector("Balanced accuracy        = ", balanced_acc_k[printrows::ncat])
+	print_vector("Prevalence               = ", prevalence_k[printrows::ncat])
+	print_vector("False positive rate      = ", false_pos_k[printrows::ncat])
+	print_vector("False alarm rate         = ", false_alarm_rate_k[printrows::ncat])
+	print_vector("False negative rate      = ", false_neg_rate_k[printrows::ncat])
+	print_vector("False omission rate      = ", false_omm_rate_k[printrows::ncat])
+	print_vector("Bias score               = ", bias_score_k[printrows::ncat])
+	print_vector("Positive likelihood ratio= ", pos_lik_ratio_k[printrows::ncat])
+	print_vector("Negative likelihood ratio= ", neg_lik_ratio_k[printrows::ncat])
+	print_vector("Youden's J statistic     = ", youden_j_k[printrows::ncat])  
+	print_vector("Markedness               = ", markedness_k[printrows::ncat])
+	print_vector("Informedness             = ", informedness_k[printrows::ncat])
+	print_vector("Diagnostic odds ratio    = ", diagnostic_odds_k[printrows::ncat])
+	print_vector("Yule's Q coefficient     = ", yule_q_coeff_k[printrows::ncat])
+	print_vector("Yule's Y coefficient     = ", yule_y_coeff_k[printrows::ncat])
+	print_vector("Fowlkes-Mallows index    = ", fowlkes_mallows_k[printrows::ncat])
+	print_vector("F1-score                 = ", f1_score_k[printrows::ncat])
+	print_vector("FB-score	               = ", fb_score_k[printrows::ncat])
+	print_vector("Correlation (Matthews)   = ", matthew_corr_k[printrows::ncat])
+	print_vector("Threat score             = ", threat_k[printrows::ncat])
+	print_vector("Gilbert Skill Score      = ", gilbert_skill_score_k[printrows::ncat])
+	print_vector("Scott's pi coefficient   = ", scott_pi_k[printrows::ncat])
+	print_vector("Peirce's skill score     = ", peirce_skill_score_k[printrows::ncat])
+	print_vector("Cohen's kappa coefficient= ", cohen_kappa_k[printrows::ncat])
+	print_vector("Clayton Skill Score      = ", clayton_skill_score_k[printrows::ncat])
+	print_vector("Extreme dependency score = ", extr_dep_score_k[printrows::ncat])
+	print_vector("Symm. extr. dep. score   = ", symmetric_extr_dep_score_k[printrows::ncat])
+	print_vector("Prevalence threshold     = ", prev_threshold_k[printrows::ncat])
+	print_vector("Adj. N2S ratio           = ", adj_noise_to_signal_k[printrows::ncat])
+
+	if(ncat > 2){
+		printf("\nMacro averages of class-specific metrics\n")
+		printf("F1-score                 = {bf:%9.4f}\n", f1_macro)
+		printf("FB-score                 = {bf:%9.4f}\n", fb_macro)
+		printf("Fowlkes-Mallows index    = {bf:%9.4f}\n", fowlkes_mallows_index)
+	}
 	
 	
 }
