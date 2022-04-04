@@ -77,7 +77,7 @@ function classify(string varlist, string AtClasses) {
 	for (i=1;i<=ncol;i++) {
 	    true_pos_k[i] = conf_mat[i,i]
 		false_pos_k[i] = rowsum_conf_mat[i] - conf_mat[i,i]
-		false_neg_k[i] = rowsum_conf_mat[i] - conf_mat[i,i]
+		false_neg_k[i] = colsum_conf_mat[i] - conf_mat[i,i]
 		true_neg_k[i] = nrow - true_pos_k[i] - false_pos_k[i] - false_neg_k[i]
 	}
 
@@ -116,6 +116,17 @@ function classify(string varlist, string AtClasses) {
 	symmetric_extr_dep_score_k = (log((true_pos_k :+ false_neg_k) :/ nrow) :+ log((true_pos_k :+ false_pos_k) :/ nrow)) :/ log(true_pos_k :/ nrow) :- 1
 	prev_threshold_k = sqrt(false_pos_rate_k):/(sqrt(false_pos_rate_k):+sqrt(recall_k))
 	adj_noise_to_signal_k = false_pos_rate_k:/recall_k
+	
+	// weighted averages of class-specific metrics
+	class_spec_metrics_mat = (precision_k\nega_pred_val_k\recall_k\specificity_k\balanced_acc_k\prevalence_k\false_pos_rate_k\false_alarm_rate_k\false_neg_rate_k\false_omm_rate_k\bias_score_k\pos_lik_ratio_k\neg_lik_ratio_k\youden_j_k\markedness_k\informedness_k\diagnostic_odds_k\yule_q_coeff_k\yule_y_coeff_k\fowlkes_mallows_k\f1_score_k\fb_score_k\matthew_corr_k\threat_k\gilbert_skill_score_k\scott_pi_k\peirce_skill_score_k\cohen_kappa_k\clayton_skill_score_k\extr_dep_score_k\symmetric_extr_dep_score_k\prev_threshold_k\adj_noise_to_signal_k)
+	
+	weighted_avg = J(33,1,0)
+	
+	for (i=1; i<=33; i++) {
+		for (j=1; j<=ncol; j++) {
+			weighted_avg[i] = weighted_avg[i] + class_spec_metrics_mat[i,j]*colsum_conf_mat[j]/nrow
+		}
+	}
 
 
 	// brier/logarithmic/spherical score
@@ -247,6 +258,41 @@ function classify(string varlist, string AtClasses) {
 		printf("F1-score                 = {bf:%9.4f}\n", f1_macro)
 		printf("FB-score                 = {bf:%9.4f}\n", fb_macro)
 		printf("Fowlkes-Mallows index    = {bf:%9.4f}\n", fowlkes_mallows_index)
+		
+		printf("\nWeighted averages of class specific metrics\n")
+		printf("Precision                = {bf:%9.4f} \n", weighted_avg[1])
+		printf("Negative predicted value = {bf:%9.4f} \n", weighted_avg[2])
+		printf("Recall                   = {bf:%9.4f} \n", weighted_avg[3])
+		printf("Specificity              = {bf:%9.4f} \n", weighted_avg[4])
+		printf("Balanced accuracy        = {bf:%9.4f} \n", weighted_avg[5])
+		printf("Prevalence               = {bf:%9.4f} \n", weighted_avg[6])
+		printf("False positive rate      = {bf:%9.4f} \n", weighted_avg[7])
+		printf("False alarm rate         = {bf:%9.4f} \n", weighted_avg[8])
+		printf("False negative rate      = {bf:%9.4f} \n", weighted_avg[9])
+		printf("False omission rate      = {bf:%9.4f} \n", weighted_avg[10])
+		printf("Bias score               = {bf:%9.4f} \n", weighted_avg[11])
+		printf("Positive likelihood ratio= {bf:%9.4f} \n", weighted_avg[12])
+		printf("Negative likelihood ratio= {bf:%9.4f} \n", weighted_avg[13])
+		printf("Youden's J statistic     = {bf:%9.4f} \n", weighted_avg[14])  
+		printf("Markedness               = {bf:%9.4f} \n", weighted_avg[15])
+		printf("Informedness             = {bf:%9.4f} \n", weighted_avg[16])
+		printf("Diagnostic odds ratio    = {bf:%9.4f} \n", weighted_avg[17])
+		printf("Yule's Q coefficient     = {bf:%9.4f} \n", weighted_avg[18])
+		printf("Yule's Y coefficient     = {bf:%9.4f} \n", weighted_avg[19])
+		printf("Fowlkes-Mallows index    = {bf:%9.4f} \n", weighted_avg[20])
+		printf("F1-score                 = {bf:%9.4f} \n", weighted_avg[21])
+		printf("FB-score                 = {bf:%9.4f} \n", weighted_avg[22])
+		printf("Correlation (Matthews)   = {bf:%9.4f} \n", weighted_avg[23])
+		printf("Threat score             = {bf:%9.4f} \n", weighted_avg[24])
+		printf("Gilbert Skill Score      = {bf:%9.4f} \n", weighted_avg[25])
+		printf("Scott's pi coefficient   = {bf:%9.4f} \n", weighted_avg[26])
+		printf("Peirce's skill score     = {bf:%9.4f} \n", weighted_avg[27])
+		printf("Cohen's kappa coefficient= {bf:%9.4f} \n", weighted_avg[28])
+		printf("Clayton Skill Score      = {bf:%9.4f} \n", weighted_avg[29])
+		printf("Extreme dependency score = {bf:%9.4f} \n", weighted_avg[30])
+		printf("Symm. extr. dep. score   = {bf:%9.4f} \n", weighted_avg[31])
+		printf("Prevalence threshold     = {bf:%9.4f} \n", weighted_avg[32])
+		printf("Adj. N2S ratio           = {bf:%9.4f} \n", weighted_avg[33])
 	}
 	
 	
