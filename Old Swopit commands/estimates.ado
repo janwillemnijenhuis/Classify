@@ -110,10 +110,10 @@ function classify(string varlist, string AtClasses) {
 	gilbert_skill_score_k = (true_pos_k:-a):/(true_pos_k:+false_neg_k:+false_pos_k:-a)
 	scott_pi_k = ((nrow:*true_pos_k):-0.25:*(2:*true_pos_k:+false_pos_k:+false_neg_k):^2):/(nrow^2 :- (0.25:*(2:*true_pos_k:+false_pos_k:+false_neg_k):^2))
 	peirce_skill_score_k = ((true_pos_k:*true_neg_k):-(false_neg_k:*false_pos_k)):/((true_pos_k:+false_neg_k):*(false_pos_k:+true_neg_k))
-	cohen_kappa_k = ((true_pos_k :- (true_pos_k :+ false_pos_k)) :* ((true_pos_k:+false_neg_k):/nrow) :/ (nrow :- (true_pos_k :+ false_pos_k) :* (true_pos_k :+ false_neg_k)/nrow))
+	cohen_kappa_k = (true_pos_k :- (true_pos_k :+ false_pos_k) :* (true_pos_k:+false_neg_k):/nrow) :/ (nrow :- (true_pos_k :+ false_pos_k) :* (true_pos_k :+ false_neg_k)/nrow)
 	clayton_skill_score_k = ((true_pos_k :* true_neg_k) :- (false_neg_k :* false_pos_k)) :/ ((true_pos_k :+false_pos_k) :* (false_neg_k :+ true_neg_k))
 	extr_dep_score_k = (2 :* log((true_pos_k :+ false_neg_k) :/ nrow)) :/ log(true_pos_k :/ nrow) :- 1
-	symmetric_extr_dep_score_k = (log((true_pos_k :+ false_neg_k) :/ nrow) :+ log((true_pos_k :+ true_neg_k) :/ nrow)) :/ log(true_pos_k :/ nrow) :- 1
+	symmetric_extr_dep_score_k = (log((true_pos_k :+ false_neg_k) :/ nrow) :+ log((true_pos_k :+ false_pos_k) :/ nrow)) :/ log(true_pos_k :/ nrow) :- 1
 	prev_threshold_k = sqrt(false_pos_rate_k):/(sqrt(false_pos_rate_k):+sqrt(recall_k))
 	adj_noise_to_signal_k = false_pos_rate_k:/recall_k
 
@@ -184,7 +184,7 @@ function classify(string varlist, string AtClasses) {
 		recall_macro = sum(recall_k)/ncol
 		f1_macro = 2*(prec_macro*recall_macro)/(prec_macro+recall_macro)
 		fb_macro = (1+beta^2)*(prec_macro*recall_macro)/(beta^2*(prec_macro+recall_macro))
-		fowlkes_mallows_index = sqrt(prec_macro+recall_macro)
+		fowlkes_mallows_index = sqrt(prec_macro*recall_macro)
 	
 		// weighted averages (do we want to do this?)
 		// also do we want each confusion matrix class specific?
