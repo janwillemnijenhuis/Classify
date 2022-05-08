@@ -49,25 +49,156 @@ function classify(string varlist, string AtClasses) {
 	accuracy = sum((y :== prediction))/nrow
 	misclassification_rate = 1 - accuracy
 	balanced_acc_row = J(1, ncol, 0)
+	rogot_goldberg = 0
+	gktm = 0 // goodman kruskal tau multi
+	gkg_1= 0
+	gkg_2=0
+	theil_u_1=0
+	theil_u_2=0
+	stuart_1=0
+	stuart_2=0
+	D_j = J(1,ncol,0)
 	colsum_conf_mat = colsum(conf_mat) // this is a_1...a_i
 	rowsum_conf_mat = rowsum(conf_mat) // this is p_1...p_i
 	a2 = 0
 	p2 = 0
 	pa = 0
 	p_plus_a_2 = 0
+	n_ij_abs = 0
+	n_ij_k =0
+	n_ij_k_abs = 0
+	pcm = 0 // pearsion chi multi
+	lik_g = 0 // likelihood g
+	adj_r_1=0
+	adj_r_2=0
+	adj_r_3=0
+	kendall_1=0
+	kendall_2=0
 	for (i=1;i<=ncol;i++) {
 	    p_plus_a_2 = p_plus_a_2 + (colsum_conf_mat[i]*rowsum_conf_mat[i])^2
 	    a2 = a2 + colsum_conf_mat[i]^2
 		p2 = p2 + rowsum_conf_mat[i]^2
 		pa = pa + colsum_conf_mat[i]*rowsum_conf_mat[i]
 	    balanced_acc_row[i] = conf_mat[i,i]/colsum_conf_mat[i]
+		rogot_goldberg = rogot_goldberg + balanced_acc_row[i] + conf_mat[i,i]/rowsum_conf_mat[i] 
+		gktm_2 = 0 
+		for (j=1;j<=ncol;j++) {
+		    kendall_1 = kendall_1 + rowsum_conf_mat[i]*(rowsum_conf_mat[i]-1)/2
+			kendall_2 = kendall_2 + colsum_conf_mat[i]*(colsum_conf_mat[i]-1)/2
+		    // this part is for gerity skill score
+			n_r = 0
+			for (r=1;r<=j;r++) {
+			    n_r = n_r+colsum_conf_mat[r]
+			}
+			D_j[j] = (nrow-n_r)/n_r
+			// this is for tonnies measure
+			if (abs(i-j)==1) {
+			    n_ij_abs = n_ij_abs+conf_mat[i,j]
+			}
+			if (i+j-1==ncol) {
+			    n_ij_k = n_ij_k + conf_mat[i,j]
+			}
+			if (i+j-1==ncol-1 || i+j-1==ncol+1) {
+			    n_ij_k_abs = n_ij_k_abs + conf_mat[i,j]
+			}
+			//
+		    n_ij = conf_mat[i,j]
+			// this is all for the adj_rand_index
+			if (n_ij>1){
+				adj_r_1 = adj_r_1 + comb(n_ij,2)
+			}
+			if (rowsum_conf_mat[i]>1) {
+				adj_r_2 = adj_r_2 + comb(rowsum_conf_mat[i],2)
+			}
+			if (colsum_conf_mat[j]>1) {
+				adj_r_3 = adj_r_3 + comb(colsum_conf_mat[j],2)
+			}
+		
+			gktm_2 = gktm_2 + conf_mat[i,j]^2/rowsum_conf_mat[i]
+			n_hmax_kmax = 0
+			n_hmax_kmin = 0
+			for (h=i+1;h<=ncol;h++){
+			    for (k=j+1;k<=ncol;k++){
+				    n_hmax_kmax = n_hmax_kmax + conf_mat[h,k]
+				}
+				for (k=1;k<j;k++) {
+				    n_hmax_kmin = n_hmax_kmin + conf_mat[h,k]
+				}
+			}
+			gkg_1 = gkg_1 + n_ij*n_hmax_kmax
+			gkg_2 = gkg_2 + n_ij*n_hmax_kmin
+			stuart_1 = stuart_1 + n_ij*n_hmax_kmax
+			stuart_2 = stuart_2 + n_ij*n_hmax_kmin
+			
+			if ((n_ij/(rowsum_conf_mat[i]+colsum_conf_mat[j]))>0) {
+				theil_u_1 = theil_u_1 + n_ij*log((n_ij/(rowsum_conf_mat[i]+colsum_conf_mat[j])))
+				lik_g = lik_g + log((n_ij*nrow)/(rowsum_conf_mat[i]*colsum_conf_mat[j]))
+			} // is this right?
+			theil_u_2 = theil_u_2 + log(colsum_conf_mat[j])*colsum_conf_mat[j]
+			
+			pcm = pcm + (n_ij-rowsum_conf_mat[i]*colsum_conf_mat[j]/nrow)^2/(rowsum_conf_mat[i]*colsum_conf_mat[j]/nrow)
+			
+		}
+		gktm = gktm + (nrow*gktm_2-colsum_conf_mat[i]^2)/(nrow^2-colsum_conf_mat[i]^2)
 	}
+	theil_u = -1*theil_u_1/theil_u_2
+	
+	gsk = 0 // gerity skill score
+	for (i=1;i<=ncol;i++) {
+	    for (j=1;j<=ncol;j++) {
+		    w=0
+		    if (i==j) {
+			    w_jj = 0
+				w_jj_1 = 0
+				w_jj_2 = 0
+				for (r=1;r<=j-1;r++) {
+				    w_jj_1 = w_jj_1 + 1/D_j[r]
+				}
+				for (r=j;r<=ncol;r++) {
+				    w_jj_2 = w_jj_2 + D_j[r]
+				}
+				w_jj = (w_jj_1+w_jj_2)/(ncol-1)
+				w = w_jj
+			} else {
+			    w_ij = 0
+				w_ij_1 = 0
+				w_ij_2 = 0
+				for (r=1;r<=j-1;r++) {
+				    w_ij_1 = w_ij_1 + 1/D_j[r]
+				}
+				for (r=j;r<=ncol;r++) {
+				    w_ij_2 = w_ij_2 + D_j[r]
+				}
+				w_ij = (w_ij_1+w_ij_2-(j-1))/(ncol-1)
+				w = w_ij
+			}
+			gsk = gsk+w*conf_mat[i,j]
+		}
+	}
+	gsk = gsk/nrow^2
+	
 	balanced_acc = sum(balanced_acc_row)/ncol
 	corr_matthew = (sum((y :== prediction))*nrow - pa)/(sqrt((nrow^2-p2)*(nrow^2-a2)))
 	cohen_kappa = (sum((y :== prediction))*nrow - pa)/(nrow^2-pa)
 	scott_pi = (sum((y :== prediction))*nrow - 0.25*p_plus_a_2)/(nrow^2-0.25*p_plus_a_2)
 	peirce_skill_score = (sum((y :== prediction))*nrow - pa)/(nrow^2-a2)
 	clayton_skill_score = (sum((y :== prediction))*nrow - pa)/(nrow^2-p2)
+	// 2nd draft, from page 29 onwards
+	n_kk = sum((y:==prediction))
+	rogot_goldberg = rogot_goldberg/(2*ncol)
+	goodman_kruskal_lambda = (n_kk-rowmax(colsum_conf_mat))/(nrow-rowmax(colsum_conf_mat))
+	// gktm above
+	gkg = (gkg_1-gkg_2)/(gkg_1+gkg_2)
+	stuart = (stuart_1-stuart_2)/((ncol-1)/ncol)
+	tonnies = 2*n_kk + n_ij_abs - 2* n_ij_k-n_ij_k_abs
+	koppen_ms = accuracy + (1/(2*nrow))*n_ij_abs
+	msc = pcm / nrow
+	lik_g = 2*lik_g
+	c_contingency = sqrt((pcm/nrow)/(1+(pcm/nrow)))
+	cramer_v_multi = sqrt((pcm/nrow)) // i took the easier approach
+	cramer_v_bias_multi = sqrt(pcm/(nrow*(2-(1/(nrow-1)))))
+	adj_rand_index = (adj_r_1-adj_r_2*adj_r_3/comb(nrow,2))/(0.5*(adj_r_2+adj_r_3)-adj_r_2*adj_r_3/comb(nrow,2))
+	kendall_tau = (stuart_1-stuart_2)/sqrt((comb(nrow,2)-kendall_1)*(comb(nrow,2)-kendall_2))
 	
 	// computation of class specific measures
 	true_pos_k = J(1,ncol,0)
@@ -215,10 +346,98 @@ function classify(string varlist, string AtClasses) {
 	peirce_one = (tp:*tn :- fp:*fn):/( (tp:+fn):*(fp:*tn) )
 	peirce_two = ( tp:*fp :+ fp:* fn ):/( tp:*fp :+ 2:*fp:*fn + fn:*tn)
 	
-
+	// from here is page 17 until the end (jw)
+	log_odds = log((tp:/fp):*(tn:/fn))
+	goodman_ass = log_odds :* sqrt(((tp:+fp):*(tp:+fn):*(tn:+fp):*(tn:+fn)))
+	goodman_un_ass = 0.25:*log_odds
+	// yule is computed before
+	goodman_lambda = (tp:+tn - colmax((tp:+fn\fp:+tn))):/(nrow:-colmax((tp:+fn\fp:+tn)))
+	goodman_kruskal_1 = (2:*colmin((tp\tn)):-fp:-fn):/(2:*colmin((tp\tn)):+fp:+fn)
+	goodman_kruskal_2 = (colmax((tp\fn)):+colmax((fp\tn)):-colmax(((tp:+fp)\(tn:+fn)))):/(1:-colmax(((tp:+fp)\(tn:+fn))))
+	goodman_kruskal_3 = (tp:+tn:-colmax((tp\tn)):-((fp:+fn):/2)):/(1:-colmax((tp\tn)):-((fp:+fn):/2))
+	// goodman_kruskal_4 isnt formatted well in the draft, ask about this
+	// yule y is computed before
+	adj_f_score = sqrt(((5:*tp:^2):/((5:*tp:^2):+4:*tp:*fn+tp:*fp)):*((2:*tn):/(2:*tn:+fn:+fp)))
+	pearson_mscc = ((tp:*tn:-fp:*fn):^2):/((tp:+fp):*(tp:+fn):+(tn:+fp):*(tn:+fn))
+	// matthew corr k is computed before
+	// what is phi in pearson #??? coefficient?
+	gower = (tp:+tn):/sqrt((tp:+fp):*(tp:+fn):*(fn:+fp):*(tn:+fn))
+	stiles = log((nrow:*(abs(tp:*tn:-fp:*fn):-nrow/2):^2):/((tp:+fp):*(tp:+fn):*(tn:+fp):*(tn:+fn))):/log(10)
+	dennis = (tp:*tn:-fp:*fn):/sqrt((tp:+fp):*(tp:+fn):*nrow)
+	loevinger = (tp:*tn:-fp:*fn):/(colmin((((tp:+fp):*(fp:+tn))\((tn:+fp):*(tn:+fn)))))
+	// ??? this formula is the same as loevinger
+	pearson_heron_2 = cos((pi():*sqrt(fp:*fn)):/(sqrt(tp:*tn):+sqrt(fp:*fn)))
+	forbes_d = (tp:*nrow):/((tp:+fp):*(tp:+fn))
+	alroy_forbes = (tp:*(nrow+sqrt(nrow))):/(tp:*(nrow+sqrt(nrow)):+1.5:*fp:*fn)
+	// from here page 20
+	forbes_2 = (tp:*nrow:-(tp:+fp):*(tp:+fn)):/(nrow:*colmin((tp:+fp)\(tp:+fn)):-(tp:+fp):*(tp:+fn))
+	gini_ass = ((tp:*tn):-(fp:*fn)):/(nrow:-abs(fp:-fn):-(tp:+fp):*(tp:+fn):-(tn:+fp):*(tn:+fn))
+	fleiss = ((tp:*tn:-fp:*fn):*(tp:+fp):*(fp:+tn):+(tp:+fn):*(fn:+tn)):/(2:*(tp:+fp):*(tp:+fn):*(tn:+fp):*(tn:+fn))
+	kuhns_1 = (2:*(tp:*tn:-fp:*fn)):/(nrow:*(2:*tp:+fp:+fn))
+	kuhns_2 = ((tp:*tn:-fp:*fn):*(tp:+fp):*(tp:+fn)):/(nrow:*tp:*(2:*tp:+fp:+fn:-(tp:+fp):*(tp:+fn):/nrow))
+	goodman_conc = 2:*(sqrt(tp:*(fn:+tn):*(fp:+tn)):+sqrt(tn:*(tp:+fn):*(tp:+fp)):-sqrt(fp:*(fn:+tn):*(fn:+tp)):-sqrt(fn:*(tp:+fp):*(fp:+tn)))
+	rogers_tanimoto = (tp:+tn):/(nrow:+fn:+fp)
+	sokal_sneath_2 = 2:*(tp:+tn):/(nrow:+tp:+tn)
+	sokal_sneath_3 = (tp:+tn):/(fp:+fn)
+	sokal_sneath_4 = 0.25:*((tp:/(tp:+fp)):+(tp:/(tp:+fn)):+(tn:/(fp:+tn)):+(tn:/(fn:+tn)))
+	sokal_sneath_5 = (tp:*tn):/(sqrt((tp:+fp):*(tp:+fn):*(tn:+fp):*(tn:+fn)))
+	kocher_wang = (tp:*nrow):/((tp:+fp):*(fn:+tn))
+	faith = (tp:+tn:/2):/nrow
+	hamann = ((tp:+tn):-(fp:+fn)):/(nrow)
+	hawkins_dotson = 0.5:*(tp:/(fn:+fp:+tp))+0.5:*(tn:/(fn:+fp:+tn))
+	roux_1 = (tp:+tn):/(colmin(fp\fn):+colmin((nrow:-fp)\(nrow:-fn)))
+	roux_2 = (nrow:-tp:*tn):/(sqrt((tp:+fp):*(tp:+fn):*(tn:+fp):*(tn:+fn)))
+	maxwell_pilliner = 2:*(tp:*tn:-fp:*fn):/((tp:+fp):*(tn:+fn):+(tp:+fn):*(tn:+fp))
+	unigram_subtuples = log((tp:*tn):/(fp:*fn)):-3.29:*sqrt((1:/tp):+(1:/fp):+(1:/fn):+(1:/tn))
+	norm_google_dist = (colmax(log(fp)\log(fn)):-log(tp)):/(log(nrow):-colmin(log(fp)\log(fn)))
+	eyraud_sim_ind = (tp:-(tp:+fp):*(tp:+fn)):/((tp:+fp):*(tp:+fn):*(tn:+fp):*(tn:+fn))
+	fossum = (nrow:*(tp:-0.5):^2):/((tp:+fp):*(tp:+fn))
+	baroni_urbani_buser_1 = (sqrt(tp:*tn):+tp):/(sqrt(tp:*tn):+tp:+fn:+fp)
+	baroni_urbani_buser_2 = (sqrt(tp:*tn):+tp-(fp:+fn)):/(sqrt(tp:*tn):+tp:+fn:+fp)
+	michael = 4:*(tp:*tn:-fp:*fn):/((tp:+tn):^2:+(fp:+fn):^2)
+	clement = (tp:*(fn:+tn):/(tp:+fp)):+(tn:*(tp:+fp):/(fn:+tn))
+	harris_lahey = tp:*(2:*tn:+fn:+fp):/(2:*(tn:+fp:+fn)):+(tn:*(2:*tp:+fn:+fp)):/(2:*(tn:+fp:+fn))
+	kuder_richardson = (4:*(tp:*tn:-fp:*fn)):/((tp:+fp):*(fn:+tn):+(tp:+fn):*(fn:+tn):+2:*(tp:*tn:-fp:*fn))
+	bc_diss = (4:*fn:*fp):/(nrow:^2)
+	sokal_dist = sqrt((fp:+fn):/nrow)
+	yule_dist = (2:*fp:*fn):/(tp:*tn:+fp:*fn)
+	// gilber skill is already done before
+	// so is peirce skill score
+	quetelet = (tp:*tn:-fp:*fn):/((tp:+fn):*(fp:+tp))
+	koppen = (tp:*tn:-fp:*fn):/((tp:+fp):*(fp:+tn))
+	d = ((tp:+fp):*(tp:+fn):+(tn:+fp):*(tn:+fn)):/nrow
+	heidke = (tp:+tn:-d):/(nrow:-d)
+	shrank = (tp:+tn:-((fp:+fn):/2):-d):/nrow
+	tarwid = (nrow:*tp:-(tp:+fp):*(tp:+fn)):/(nrow:*tp:+(tp:+fp):*(tp:+fn))
+	weighted_rel_acc = ((4:*fn):/(1:+fn):^2):*((tp:/(tp:+fn)):-(fp:/(fp:+tn)))
+	// scott pi has been done
+	krippendorf_a = (1:-2:*(nrow:-1):*(fp:+fn)):/(2:*tp:+fp:+fn):*(2:*tn:+fn:+fp)
+	// ???
+	scott_coeff = ((4:*tp:*tn):-(fn:+fp):^2):/((2:*tp:+fp:+fn):*(2:*tn:+fp:+fn))
+	// clayton has been done
+	gilber_wells = log((tp:*nrow):/((tp:+fp):*(tp:+fn)))
+	weighted_mut_inf = log(((tp:^3):*nrow):/((tp:+fp):*(tp:+fn)))
+	//extreme dep done
+	// so is symm extr 
+	extremal_dep_ind = (log(fp:/(fp:+tn)):-log(tp:/(tp:+fn))):/(log(fp:/(fp:+tn)):+log(tp:/(tp:+fn)))
+	symmetric_extremal = (log(fp:/(fp:+tn)):-log(tp:/(tp:+fn)):+log(fn:/(tp:+fn)):-log(tn:/(fp:+tn))):/(log(fp:/(fp:+tn)):+log(tp:/(tp:+fn)):+log(fn:/(tp:+fn)):+log(tn:/(fp:+tn)))
+	dunning = 2:*(tp:*log(tp):+fp:*log(fp):+fn:*log(fn):+tn:*log(tn)):-(tp:+fp):*log(tp:+fp):-(tp:+fp):*log(tp:+fn):-(tn:+fp):*log(tn:+fp):-(tn:+fn):*log(tn:+fn):+(tp:+fp:+fn:+tn):*log(tp:+fp:+fn:+tn)
+	prevalence_2 = sqrt(fp:/(fp:+tn)):/(sqrt(tp:/(tp:+fn)):+sqrt(fp:/(fp:+tn)))
+	tarantula = (tp:/(fp:+tp)):/((tp:/(tp:+fp)):+(fn:/(fn:+tn)))
+	discriminant_power = (sqrt(3)/pi()):/(log((tp:*(tn:+fp)):/((tp:+fn):*fp)):+log((tn:*(tp:+fn)):/((tn:+fp):*fn)))
+	discr_distance = invnormal(tp:/(tp:+fn)):-invnormal(fp:/(fp:+tn))
+	pearson_chi = (nrow:*(tp:*tn:-fp:*fn)):/((tp:+fp):*(tp:+fn):*(tn:+fp):*(tn:+fn)) // didnt check equality with the other thingy
+	pearson_chi_yates = (nrow:*(abs(tp:*tn:-fp:*fn):-(nrow:/2)):^2):/((tp:+fp):*(tp:+fn):*(tn:+fp):*(tn:+fn))
+	mean_sq_contingency = pearson_chi:/nrow // check the equality there otherwise this doesnt hold
+	goodman_kruskal_tau = (nrow:*((tp:^2:/(tp:+fp)):+(fp:^2:/(tp:+fp)):+(fn:^2:/(fn:+tp)):+(tn:^2:/(fn:+tp))):-(tp:+fn):^2:-(fn:+tn):^2):/(2:*(tp:+fn):*(fn:+tn)) // i didnt check it
+	likelihood_chi = 2:*tp:*log((tp:*nrow):/((tp:+fp):*(tp:+fn))):+2:*fp:*log((fp:*nrow):/((tp:+fp):*(fp:*tn))):+2:*tn:*log((tn:*nrow):/((tn:+fp):*(tn:+fn))):+2:*fn:*log((fn:*nrow):/((tp:+fn):*(fn:+tn)))
+	pearson_c = sqrt((pearson_chi:/nrow):/(1:+pearson_chi:/nrow))
+	cramer_v = sqrt(pearson_chi:/nrow)
+	cramer_v_bias = sqrt(pearson_chi:/(nrow:*(2:-(1:/(nrow:-1)))))
 	
-
-
+	
+	
+	
 
 
 
@@ -352,11 +571,29 @@ function classify(string varlist, string AtClasses) {
  		printf("Accuracy                 = {bf:%9.4f} \n", accuracy)
 		printf("Misclassification rate	 = {bf:%9.4f} \n", misclassification_rate)
 		printf("Balanced accuracy   	 = {bf:%9.4f} \n", balanced_acc)
+		printf("Rogot-Goldberg       	 = {bf:%9.4f} \n", rogot_goldberg)
+		printf("Goodman-Kruskal lambda   = {bf:%9.4f} \n", goodman_kruskal_lambda)
+		printf("Goodman-Kruskal tau      = {bf:%9.4f} \n", gktm)
+		printf("Goodman-Kruskal gamma    = {bf:%9.4f} \n", gkg)
 		printf("Correlation (Matthew)    = {bf:%9.4f} \n", corr_matthew)
 		printf("Cohen's kappa coefficient= {bf:%9.4f} \n", cohen_kappa)
 		printf("Scott's pi coefficient   = {bf:%9.4f} \n", scott_pi)
 		printf("Peirce's skill score     = {bf:%9.4f} \n", peirce_skill_score)
 		printf("Clayton skill score      = {bf:%9.4f} \n", clayton_skill_score)
+		printf("Gerity skill score       = {bf:%9.4f} \n", gsk)
+		printf("Theil U                  = {bf:%9.4f} \n", theil_u)
+		printf("Tönnies                  = {bf:%9.4f} \n", tonnies)
+		printf("Köppen                   = {bf:%9.4f} \n", koppen_ms)
+		printf("Adj. Rand index          = {bf:%9.4f} \n", adj_rand_index)
+		printf("Kendall tau              = {bf:%9.4f} \n", kendall_tau)
+		printf("Pearson Chi              = {bf:%9.4f} \n", pcm)
+		printf("Mean square contingency  = {bf:%9.4f} \n", msc)
+		printf("Likelihood G             = {bf:%9.4f} \n", lik_g)
+		printf("Mean square cont. C      = {bf:%9.4f} \n", c_contingency)
+		printf("Cramer V                 = {bf:%9.4f} \n", cramer_v_multi)
+    	printf("Cramer V (bias corr.)    = {bf:%9.4f} \n", cramer_v_bias_multi)
+
+		
 		printf("\nClass specific metrics\n")
 		printrows = 1
 	}else{
@@ -478,8 +715,85 @@ function classify(string varlist, string AtClasses) {
 	print_vector("Lacour		       = ", lacour[printrows::ncat])
 	print_vector("Peirce #1		       = ", peirce_one[printrows::ncat])
 	print_vector("Peirce #2		       = ", peirce_two[printrows::ncat])
+	
+	// from here page 17 and onwards
+	print_vector("Log odds		       = ", log_odds[printrows::ncat])
+	print_vector("Goodman association w.   = ", goodman_ass[printrows::ncat])
+	print_vector("Goodman association uw.  = ", goodman_un_ass[printrows::ncat])
+	print_vector("Goodman-Kruskal lambda   = ", goodman_lambda[printrows::ncat]) // another version? see paper
+	print_vector("Goodman-Kruskal #1       = ", goodman_kruskal_1[printrows::ncat])
+	print_vector("Goodman-Kruskal #2       = ", goodman_kruskal_2[printrows::ncat])
+	print_vector("Goodman-Kruskal #3       = ", goodman_kruskal_3[printrows::ncat])
+	print_vector("Adj. F-score             = ", adj_f_score[printrows::ncat])
+	print_vector("Pearson MSCC             = ", pearson_mscc[printrows::ncat])
+	print_vector("Gower                    = ", gower[printrows::ncat])
+	print_vector("Stiles                   = ", stiles[printrows::ncat])
+	print_vector("Dennis                   = ", dennis[printrows::ncat])
+	print_vector("Loevinger                = ", loevinger[printrows::ncat])
+	print_vector("Pearson Heron #2         = ", pearson_heron_2[printrows::ncat])
+	print_vector("Forbes D                 = ", forbes_d[printrows::ncat]) // will we also be in forbes after this?
+	print_vector("Alroy corr. Forbes       = ", pearson_heron_2[printrows::ncat])
+	// page 20 starts here
+	print_vector("Forbes #2                = ", forbes_2[printrows::ncat])
+	print_vector("Gini association         = ", gini_ass[printrows::ncat])
+	print_vector("Fleiss                   = ", fleiss[printrows::ncat])
+	print_vector("Kuhns #1                 = ", kuhns_1[printrows::ncat])
+	print_vector("Kuhns #2                 = ", kuhns_2[printrows::ncat])
+	print_vector("Goodman concomitance     = ", goodman_conc[printrows::ncat])
+	print_vector("Rogers-Tanimoto          = ", rogers_tanimoto[printrows::ncat])
+	print_vector("Sokal-Sneath #2          = ", sokal_sneath_2[printrows::ncat])
+	print_vector("Sokal-Sneath #3          = ", sokal_sneath_3[printrows::ncat])
+	print_vector("Sokal-Sneath #4          = ", sokal_sneath_4[printrows::ncat])
+	print_vector("Sokal-Sneath #5          = ", sokal_sneath_5[printrows::ncat])
+	print_vector("Kocher-Wong              = ", kocher_wang[printrows::ncat])
+	print_vector("Faith                    = ", faith[printrows::ncat])
+	print_vector("Hamann                   = ", hamann[printrows::ncat])
+	print_vector("Hawkin-Dotson            = ", hawkins_dotson[printrows::ncat])
+	print_vector("Roux #1                  = ", roux_1[printrows::ncat])
+	print_vector("Roux #2                  = ", roux_2[printrows::ncat])
+	print_vector("Unigram subtuples        = ", unigram_subtuples[printrows::ncat])
+	print_vector("Norm. google distance    = ", norm_google_dist[printrows::ncat])
+	print_vector("Eyraud similarity        = ", eyraud_sim_ind[printrows::ncat])
+	print_vector("Fossum                   = ", fossum[printrows::ncat])
+	print_vector("Baroni-Urbani-Buser #1   = ", baroni_urbani_buser_1[printrows::ncat])
+	print_vector("Baroni-Urbani-Buser #2   = ", baroni_urbani_buser_2[printrows::ncat])
+	print_vector("Michael                  = ", michael[printrows::ncat])
+	print_vector("Clement                  = ", clement[printrows::ncat])
+	print_vector("Harris-Lahey             = ", harris_lahey[printrows::ncat])
+	print_vector("Kuder-Richardson         = ", kuder_richardson[printrows::ncat])
+	print_vector("BC dissimilarity         = ", bc_diss[printrows::ncat])
+	print_vector("Sokal distance           = ", sokal_dist[printrows::ncat])
+	print_vector("Yule distance            = ", yule_dist[printrows::ncat])
+	print_vector("Quetelet                 = ", quetelet[printrows::ncat])
+	print_vector("Köppen                   = ", koppen[printrows::ncat])
+	print_vector("Heidke skill score       = ", heidke[printrows::ncat])
+	print_vector("Shrank skill score       = ", shrank[printrows::ncat])
+	print_vector("Tarwid                   = ", tarwid[printrows::ncat])
+	print_vector("Relative accuracy (wgtd) = ", weighted_rel_acc[printrows::ncat])
+	print_vector("Krippendorf alpha        = ", krippendorf_a[printrows::ncat])
+	print_vector("Scott                    = ", scott_coeff[printrows::ncat])
+	print_vector("Gilbert-Wells            = ", gilber_wells[printrows::ncat])
+	print_vector("Weighted mut. Inf.       = ", weighted_mut_inf[printrows::ncat])
+	print_vector("Extremal dep.            = ", extremal_dep_ind[printrows::ncat])
+	print_vector("Symmetric extremal dep.  = ", symmetric_extremal[printrows::ncat])
+	print_vector("Dunning                  = ", dunning[printrows::ncat])
+	print_vector("Prevalence #2            = ", prevalence_2[printrows::ncat])
+	print_vector("Tarantula                = ", tarantula[printrows::ncat])
+	print_vector("Discriminant power       = ", discriminant_power[printrows::ncat])
+	print_vector("Discrimination distance  = ", discr_distance[printrows::ncat])
+	print_vector("Pearson Chi              = ", pearson_chi[printrows::ncat])
+	print_vector("Pearson Chi (Yates)      = ", pearson_chi_yates[printrows::ncat])
+	print_vector("Mean square contingency  = ", mean_sq_contingency[printrows::ncat])
+	print_vector("Goodman Kruskal Tau      = ", goodman_kruskal_tau[printrows::ncat])
+	print_vector("Likelihood Chi           = ", likelihood_chi[printrows::ncat])
+	print_vector("Pearson C                = ", pearson_c[printrows::ncat])
+	print_vector("Cramer V                 = ", cramer_v[printrows::ncat])
+	print_vector("Cramer V (bias corr.)    = ", cramer_v_bias[printrows::ncat])
+	print_vector("Roux #1                  = ", roux_1[printrows::ncat])
+	print_vector("Roux #1                  = ", roux_1[printrows::ncat])
+	print_vector("Roux #1                  = ", roux_1[printrows::ncat])
 
-
+	// this is page 29 onwards
 
 	//Untill here
 
