@@ -13,8 +13,8 @@ program classify, rclass
 		capture mata: stata(`"ds, has(varlabel "*Pr*") skip(1)"')
 		mata: var = st_global("r(varlist)")
 		mata: classify("`varlist'", var)
-		
 	} 
+	
 	if "`predict'" != "predict" {
 		mata: classify("`varlist'","`var'")
 	}

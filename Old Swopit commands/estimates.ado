@@ -233,13 +233,16 @@ function classify(string varlist, string AtClasses) {
 	yule_y_coeff_k = (sqrt(true_pos_k:*true_neg_k) :- sqrt(false_neg_k:*false_pos_k)):/(sqrt(true_pos_k:*true_neg_k) :+ sqrt(false_neg_k:*false_pos_k))
 	fowlkes_mallows_k = true_pos_k :/ sqrt(((true_pos_k :+ false_neg_k):*(true_pos_k :+ false_pos_k)))
 	f1_score_k = 2*true_pos_k:/(2*true_pos_k :+ false_pos_k :+ false_neg_k)
+	f1_score_k_c00 = 2*true_neg_k:/(2*true_neg_k :+ false_pos_k :+ false_neg_k)
 	beta = 0.5 // we should actually ask the user for this value
 	fb_score_k = ((1+beta^2):*precision_k:*recall_k):/(beta^2:*precision_k :+ recall_k)
 	matthew_corr_k = (true_pos_k:*true_neg_k :- false_pos_k:*false_neg_k):/(sqrt((true_pos_k:+false_pos_k):*(true_pos_k:+false_neg_k):*(true_neg_k:+false_pos_k):*(true_neg_k:+false_neg_k)))
 	threat_k = true_pos_k :/ (true_pos_k :+ false_neg_k :+ false_pos_k)
 	a = ((true_pos_k:+false_pos_k):*(true_pos_k:+false_neg_k)):/nrow
 	gilbert_skill_score_k = (true_pos_k:-a):/(true_pos_k:+false_neg_k:+false_pos_k:-a)
-	scott_pi_k = ((nrow:*true_pos_k):-0.25:*(2:*true_pos_k:+false_pos_k:+false_neg_k):^2):/(nrow^2 :- (0.25:*(2:*true_pos_k:+false_pos_k:+false_neg_k):^2))
+	scott_pi_k = (nrow:*(true_pos_k:+true_neg_k):-0.25:*(2:*true_pos_k:+false_pos_k:+false_neg_k):^2:-0.25:*(2:*true_neg_k:+false_pos_k:+false_neg_k):^2):/(nrow^2 :- (0.25:*(2:*true_pos_k:+false_pos_k:+false_neg_k):^2):-(0.25:*(2:*true_neg_k:+false_pos_k:+false_neg_k):^2))
+// 	scott_pi_k_2 = 1:-2:*nrow:*(false_pos_k:+false_neg_k):/((2:*true_pos_k:+false_pos_k:+false_neg_k):*(2:*true_neg_k:+false_pos_k:+false_neg_k))
+	
 	peirce_skill_score_k = ((true_pos_k:*true_neg_k):-(false_neg_k:*false_pos_k)):/((true_pos_k:+false_neg_k):*(false_pos_k:+true_neg_k))
 	cohen_kappa_k = (true_pos_k :- (true_pos_k :+ false_pos_k) :* (true_pos_k:+false_neg_k):/nrow) :/ (nrow :- (true_pos_k :+ false_pos_k) :* (true_pos_k :+ false_neg_k)/nrow)
 	clayton_skill_score_k = ((true_pos_k :* true_neg_k) :- (false_neg_k :* false_pos_k)) :/ ((true_pos_k :+false_pos_k) :* (false_neg_k :+ true_neg_k))
@@ -252,6 +255,7 @@ function classify(string varlist, string AtClasses) {
 	//From here after next draft
 	consonni_todeschini = log(true_pos_k :+ 1) :/ log(true_pos_k :+ false_pos_k :+ false_neg_k :+ 1)
 	van_der_maarel = (2 :* true_pos_k :- false_pos_k :- false_neg_k) :/ (2 :* true_pos_k :+ false_pos_k :+ false_neg_k)
+	van_der_maarel_c00 = (2 :* true_neg_k :- false_pos_k :- false_neg_k) :/ (2 :* true_neg_k :+ false_pos_k :+ false_neg_k)
 	anderberg_one =  8 :* true_pos_k :/ (8 :* true_pos_k :+ false_pos_k :+ false_neg_k)
 	anderberg_two = true_pos_k :/ (true_pos_k :+ 2:* (false_pos_k :+ false_neg_k))
 	benini = (true_pos_k :- (true_pos_k :+ false_neg_k) :* (true_pos_k :+ false_pos_k)):/(true_pos_k :+ colmin((false_neg_k\ false_pos_k)) :- (true_pos_k :+ false_neg_k) :* (true_pos_k :+ false_pos_k))
@@ -259,6 +263,7 @@ function classify(string varlist, string AtClasses) {
 	kulczynski_one = true_pos_k :/ (false_pos_k :+ false_neg_k)
 	kulczynski_two = 0.5 :* (true_pos_k :/ (true_pos_k :+ false_pos_k) + true_pos_k :/ (true_pos_k :+ false_neg_k))
 	johnson = true_pos_k :/ (true_pos_k :+ false_pos_k) + true_pos_k :/ (true_pos_k :+ false_neg_k)
+	gilbert_score = true_pos_k:/(true_pos_k :+ false_neg_k :+ false_pos_k)
 	mcconnaughey = (true_pos_k:^2 :- false_neg_k :* false_pos_k):/( (true_pos_k :+ false_pos_k):* (true_pos_k :+ false_neg_k) )
 	driver_kroeber = true_pos_k :/ sqrt((true_pos_k :+ false_pos_k) :* (true_pos_k :+ false_neg_k))
 	sorensen = 4 :* true_pos_k :/ (4 :* true_pos_k :+ false_pos_k :+ false_neg_k)
@@ -305,6 +310,7 @@ function classify(string varlist, string AtClasses) {
 	consonni_todeschini_one = log(1:+ tp :+ tn):/log(1:+nrow)
 	consonni_todeschini_two = (log(1:+nrow) :- log(1:+fp:+fn)):/log(1:+nrow)
 	consonni_todeschini_three = log(1:+tp):/log(1:+nrow)
+	consonni_todeschini_four = log(1:+tp):/log(1:+tp:+fp:+fn)
 	consonni_todeschini_five = (log(1:+tp:*tn):-log(1:+fp:*fn)):/log(1:+nrow^2/4)
 	matching = (tp :+ tn):/ (2:*tp :+ fn :+ fp)
 	balance_error_rate = 1:- tp:/(2:*(tp:+fn)) - tn:/(2:*(tn:+fp))
@@ -312,25 +318,37 @@ function classify(string varlist, string AtClasses) {
 	dominance = tp:/(tp:+fn)  :- tn:/(tn:+fp)
 	geometric_mean = sqrt(tp:/(tp:+fn)  :* tn:/(tn:+fp))
 	adjusted_g_mean = colmin(J(1,cols(tp),1)\tp) :* (sqrt(tp:/(tp:+fn)  :* tn:/(tn:+fp)) :+ tn):/(1:+fp:+tn)
-	optimization = (tp :+ tn):/nrow :- abs(tp:/(tp:+fn):-tp:/(tn:+fp)):/(tp:/(tp:+fn):+tp:/(tn:+fp))
+// 	adjusted_g_mean_2 = J(1,ncol,0)
+// 	for (i=1;i<=ncol;i++) {
+// 		if (tp[i]!=0) {
+// 			adjusted_g_mean_2[i] = (geometric_mean[i]+tn[i])/(1+tn[i]+fp[i])
+// 		}
+// 	}
+	optimization = (tp :+ tn):/nrow :- abs(tp:/(tp:+fn):-tn:/(tn:+fp)):/(tp:/(tp:+fn):+tn:/(tn:+fp))
 	positive_lik = tp:*(fp:+tn):/(fp:*(tp:+fn))
 	negative_lik = fn:*(fp:+tn):/(tn:*(tp:+fn))
+	gilbert_wells = log((nrow:*tp):/(tp:+fp):+(tp:+fn))
 	
-
+	goodman_kruskal_l = (tp:+tn:-colmax((tp:+fn)\(tn:+fp))):/(nrow:-colmax((tp:+fn)\(tn:+fp)))
+// 	goodman_a = colmax((tp\fp)) :+ colmax((fn\tn)) :+ colmax((tp\fn)) :+ colmax((fp\tn))
+// 	goodman_b = colmax(((tp:+fn)\(fp:+tn))) :+ colmax(((tp:+tn)\(fn:+tn)))
+// 	goodman_kruskal_l_2 = (goodman_a:-goodman_b):/(2:*nrow:-goodman_b)
+	
 	anderberg_a = colmax((tp\fp)) :+ colmax((fn\tn)) :+ colmax((tp\fn)) :+ colmax((fp\tn))
 	anderberg_b = colmax(((tp:+fn)\(fp:+tn))) :+ colmax(((tp:+fp)\(fn:+tn)))
 	anderberg_d = (anderberg_a :- anderberg_b):/(2:*nrow)
 
 	ample_sim = abs(tp:/(tp:+fp) :- fn:/(fn:+tn))
+// 	ample_sim_2 = abs((tp:*(tn:+fn)):/(fn:*(tp:+fp)))
 	relative_dec = (colmax((tp\fp)) :+ colmax((fn\tn)) :- colmax(((tp:+fn)\(fp:+tn)))):/ (1 :- colmax(((tp:+fn)\(fp:+tn))))
 	baulieu_one = (nrow:^2 :- (fp :- fn):^2):/(nrow:^2)
 	baulieu_two = (nrow:^2 :- 4:*fp:*fn):/(nrow:^2)
-	baulieu_three = (tp:*tn :- fp:*fn):/(nrow:^4)
+	baulieu_three = (tp:*tn :- fp:*fn):/(nrow:^2)
 	baulieu_four = (nrow:^2 :- nrow:*(fp:+fn):+(fp:-fn):^2):/(nrow:^2)
 	maron_kuhns = (tp:*tn :- fp:*fn):/nrow
 	benini_repulsion = (tp:*tn :- fp:*fn):/( colmin(((tp:+fn)\(tp:+fp))) :- (tp:+fn):*(tp:+fp))
 	cole_one = (tp:*tn:-fp:*fn):/( (tn:+fp):*(tp:+fp))
-	cole_two = (tp:*tn:-fp:*fn):/( (fn:+fn):*(tp:+fn))
+	cole_two = (tp:*tn:-fp:*fn):/( (tn:+fn):*(tp:+fn))
 	cole_three = (tp:*tn:-fp:*fn):/ colmin((( (tp:+fn):*(tp:+fp) )\( (tn:+fn):*(tn:+fp) )))
 	cole_four = sqrt(2):*(tp:*tn:-fp:*fn):/sqrt((tp:*tn :-fp:*fn):^2 :- (tp:+fp):*(tp:+fn):*(tn:+fp):*(tn:+fn))
 	digby = ( (tp:*tn):^(3/4) :- (fp:*fn):^(3/4) ):/( (tp:*tn):^(3/4) :+ (fp:*fn):^(3/4) )
@@ -355,13 +373,14 @@ function classify(string varlist, string AtClasses) {
 	goodman_kruskal_1 = (2:*colmin((tp\tn)):-fp:-fn):/(2:*colmin((tp\tn)):+fp:+fn)
 	goodman_kruskal_2 = (colmax((tp\fn)):+colmax((fp\tn)):-colmax(((tp:+fp)\(tn:+fn)))):/(1:-colmax(((tp:+fp)\(tn:+fn))))
 	goodman_kruskal_3 = (tp:+tn:-colmax((tp\tn)):-((fp:+fn):/2)):/(1:-colmax((tp\tn)):-((fp:+fn):/2))
+	goodman_kruskal_4 = (colmax(tp\fp):+colmax(fn\tn):+colmax(tp\fn):+colmax(fp\tn):-colmax((tp:+fn)\(tn:+fp)):-colmax((tp:+fp)\(tn:+fn))):/(2:-colmax((tp:+fn)\(tn:+fp)):-colmax((tp:+fp)\(tn:+fn)))
 	// goodman_kruskal_4 isnt formatted well in the draft, ask about this
 	// yule y is computed before
-	adj_f_score = sqrt(((5:*tp:^2):/((5:*tp:^2):+4:*tp:*fn+tp:*fp)):*((2:*tn):/(2:*tn:+fn:+fp)))
+	adj_f_score = sqrt(((5:*tp:^2):/((5:*tp:^2):+4:*tp:*fn:+tp:*fp)):*((2:*tn):/(2:*tn:+fn:+fp)))
 	pearson_mscc = ((tp:*tn:-fp:*fn):^2):/((tp:+fp):*(tp:+fn):+(tn:+fp):*(tn:+fn))
 	// matthew corr k is computed before
 	// what is phi in pearson #??? coefficient?
-	gower = (tp:+tn):/sqrt((tp:+fp):*(tp:+fn):*(fn:+fp):*(tn:+fn))
+	gower = (tp:+tn):/sqrt((tp:+fp):*(tp:+fn):*(tn:+fp):*(tn:+fn))
 	stiles = log((nrow:*(abs(tp:*tn:-fp:*fn):-nrow/2):^2):/((tp:+fp):*(tp:+fn):*(tn:+fp):*(tn:+fn))):/log(10)
 	dennis = (tp:*tn:-fp:*fn):/sqrt((tp:+fp):*(tp:+fn):*nrow)
 	loevinger = (tp:*tn:-fp:*fn):/(colmin((((tp:+fp):*(fp:+tn))\((tn:+fp):*(tn:+fn)))))
@@ -372,7 +391,7 @@ function classify(string varlist, string AtClasses) {
 	// from here page 20
 	forbes_2 = (tp:*nrow:-(tp:+fp):*(tp:+fn)):/(nrow:*colmin((tp:+fp)\(tp:+fn)):-(tp:+fp):*(tp:+fn))
 	gini_ass = ((tp:*tn):-(fp:*fn)):/(nrow:-abs(fp:-fn):-(tp:+fp):*(tp:+fn):-(tn:+fp):*(tn:+fn))
-	fleiss = ((tp:*tn:-fp:*fn):*(tp:+fp):*(fp:+tn):+(tp:+fn):*(fn:+tn)):/(2:*(tp:+fp):*(tp:+fn):*(tn:+fp):*(tn:+fn))
+	fleiss = ((tp:*tn:-fp:*fn):*((tp:+fp):*(fp:+tn):+(tp:+fn):*(fn:+tn)):/(2:*(tp:+fp):*(tp:+fn):*(tn:+fp):*(tn:+fn)))
 	kuhns_1 = (2:*(tp:*tn:-fp:*fn)):/(nrow:*(2:*tp:+fp:+fn))
 	kuhns_2 = ((tp:*tn:-fp:*fn):*(tp:+fp):*(tp:+fn)):/(nrow:*tp:*(2:*tp:+fp:+fn:-(tp:+fp):*(tp:+fn):/nrow))
 	goodman_conc = 2:*(sqrt(tp:*(fn:+tn):*(fp:+tn)):+sqrt(tn:*(tp:+fn):*(tp:+fp)):-sqrt(fp:*(fn:+tn):*(fn:+tp)):-sqrt(fn:*(tp:+fp):*(fp:+tn)))
@@ -381,7 +400,7 @@ function classify(string varlist, string AtClasses) {
 	sokal_sneath_3 = (tp:+tn):/(fp:+fn)
 	sokal_sneath_4 = 0.25:*((tp:/(tp:+fp)):+(tp:/(tp:+fn)):+(tn:/(fp:+tn)):+(tn:/(fn:+tn)))
 	sokal_sneath_5 = (tp:*tn):/(sqrt((tp:+fp):*(tp:+fn):*(tn:+fp):*(tn:+fn)))
-	kocher_wang = (tp:*nrow):/((tp:+fp):*(fn:+tn))
+	kocher_wang = (tp:*nrow):/((tp:+fp):*(fn:+tp))
 	faith = (tp:+tn:/2):/nrow
 	hamann = ((tp:+tn):-(fp:+fn)):/(nrow)
 	hawkins_dotson = 0.5:*(tp:/(fn:+fp:+tp))+0.5:*(tn:/(fn:+fp:+tn))
@@ -393,10 +412,10 @@ function classify(string varlist, string AtClasses) {
 	eyraud_sim_ind = (tp:-(tp:+fp):*(tp:+fn)):/((tp:+fp):*(tp:+fn):*(tn:+fp):*(tn:+fn))
 	fossum = (nrow:*(tp:-0.5):^2):/((tp:+fp):*(tp:+fn))
 	baroni_urbani_buser_1 = (sqrt(tp:*tn):+tp):/(sqrt(tp:*tn):+tp:+fn:+fp)
-	baroni_urbani_buser_2 = (sqrt(tp:*tn):+tp-(fp:+fn)):/(sqrt(tp:*tn):+tp:+fn:+fp)
+	baroni_urbani_buser_2 = (sqrt(tp:*tn):+tp-(fp:+fn)):/(sqrt(tp:*tn):+tp:+fp:+fp)
 	michael = 4:*(tp:*tn:-fp:*fn):/((tp:+tn):^2:+(fp:+fn):^2)
 	clement = (tp:*(fn:+tn):/(tp:+fp)):+(tn:*(tp:+fp):/(fn:+tn))
-	harris_lahey = tp:*(2:*tn:+fn:+fp):/(2:*(tn:+fp:+fn)):+(tn:*(2:*tp:+fn:+fp)):/(2:*(tn:+fp:+fn))
+	harris_lahey = tp:*(2:*tn:+fn:+fp):/(2:*(tp:+fp:+fn)):+(tn:*(2:*tp:+fn:+fp)):/(2:*(tn:+fp:+fn))
 	kuder_richardson = (4:*(tp:*tn:-fp:*fn)):/((tp:+fp):*(fn:+tn):+(tp:+fn):*(fn:+tn):+2:*(tp:*tn:-fp:*fn))
 	bc_diss = (4:*fn:*fp):/(nrow:^2)
 	sokal_dist = sqrt((fp:+fn):/nrow)
@@ -404,34 +423,38 @@ function classify(string varlist, string AtClasses) {
 	// gilber skill is already done before
 	// so is peirce skill score
 	quetelet = (tp:*tn:-fp:*fn):/((tp:+fn):*(fp:+tp))
-	koppen = (tp:*tn:-fp:*fn):/((tp:+fp):*(fp:+tn))
+	koppen_index = (tp:*tn:-fp:*fn):/((tp:+fp):*(fp:+tn))
 	d = ((tp:+fp):*(tp:+fn):+(tn:+fp):*(tn:+fn)):/nrow
 	heidke = (tp:+tn:-d):/(nrow:-d)
 	shrank = (tp:+tn:-((fp:+fn):/2):-d):/nrow
+// 	shrank2 = (1:+((tp:+fp):/(tn:+fn)):^2):/(1:+((tp:+fp):/(tn:+fn))):^2
 	tarwid = (nrow:*tp:-(tp:+fp):*(tp:+fn)):/(nrow:*tp:+(tp:+fp):*(tp:+fn))
 	weighted_rel_acc = ((4:*fn):/(1:+fn):^2):*((tp:/(tp:+fn)):-(fp:/(fp:+tn)))
 	// scott pi has been done
 	krippendorf_a = (1:-2:*(nrow:-1):*(fp:+fn)):/(2:*tp:+fp:+fn):*(2:*tn:+fn:+fp)
-	// ???
+	unnamed_coefficient = (4:*tp:*tn):/((4:*tp:*tn):+(tp:+tn):*(fp:+fn))
 	scott_coeff = ((4:*tp:*tn):-(fn:+fp):^2):/((2:*tp:+fp:+fn):*(2:*tn:+fp:+fn))
 	// clayton has been done
 	gilber_wells = log((tp:*nrow):/((tp:+fp):*(tp:+fn)))
-	weighted_mut_inf = log(((tp:^3):*nrow):/((tp:+fp):*(tp:+fn)))
+	weighted_mut_inf = log(((nrow:*tp:^3):*nrow):/((tp:+fp):*(tp:+fn)))
 	//extreme dep done
 	// so is symm extr 
 	extremal_dep_ind = (log(fp:/(fp:+tn)):-log(tp:/(tp:+fn))):/(log(fp:/(fp:+tn)):+log(tp:/(tp:+fn)))
 	symmetric_extremal = (log(fp:/(fp:+tn)):-log(tp:/(tp:+fn)):+log(fn:/(tp:+fn)):-log(tn:/(fp:+tn))):/(log(fp:/(fp:+tn)):+log(tp:/(tp:+fn)):+log(fn:/(tp:+fn)):+log(tn:/(fp:+tn)))
-	dunning = 2:*(tp:*log(tp):+fp:*log(fp):+fn:*log(fn):+tn:*log(tn)):-(tp:+fp):*log(tp:+fp):-(tp:+fp):*log(tp:+fn):-(tn:+fp):*log(tn:+fp):-(tn:+fn):*log(tn:+fn):+(tp:+fp:+fn:+tn):*log(tp:+fp:+fn:+tn)
+	dunning = 2:*(tp:*log(tp):+fp:*log(fp):+fn:*log(fn):+tn:*log(tn)):-(tp:+fp):*log(tp:+fp):-(tp:+fn):*log(tp:+fn):-(tn:+fp):*log(tn:+fp):-(tn:+fn):*log(tn:+fn):+(tp:+fp:+fn:+tn):*log(tp:+fp:+fn:+tn)
 	prevalence_2 = sqrt(fp:/(fp:+tn)):/(sqrt(tp:/(tp:+fn)):+sqrt(fp:/(fp:+tn)))
 	tarantula = (tp:/(fp:+tp)):/((tp:/(tp:+fp)):+(fn:/(fn:+tn)))
-	discriminant_power = (sqrt(3)/pi()):/(log((tp:*(tn:+fp)):/((tp:+fn):*fp)):+log((tn:*(tp:+fn)):/((tn:+fp):*fn)))
+	discriminant_power = (sqrt(3)/pi()):*(log((tp:*(tn:+fp)):/((tp:+fn):*fp)):+log((tn:*(tp:+fn)):/((tn:+fp):*fn)))
 	discr_distance = invnormal(tp:/(tp:+fn)):-invnormal(fp:/(fp:+tn))
-	pearson_chi = (nrow:*(tp:*tn:-fp:*fn)):/((tp:+fp):*(tp:+fn):*(tn:+fp):*(tn:+fn)) // didnt check equality with the other thingy
+	pearson_chi = (nrow:*(tp:*tn:-fp:*fn)):/((tp:+fp):*(tp:+fn):*(tn:+fp):*(tn:+fn)) 
+// 	pearson_chi_2 = (nrow:*(tp:-(tp:+fp):*(tp:+fn):/nrow):^2):/((tp:+fp):*(tp:+fn)):+(nrow:*(fp:-(tp:+fp):*(tn:+fp):/nrow):^2):/((tp:+fp):*(tn:+fp)):+(nrow:*(tn:-(tn:+fp):*(tn:+fn):/nrow):^2):/((tn:+fp):*(tn:+fp)):+(nrow:*(fn:-(tp:+fn):*(tn:+fn):/nrow):^2):/((tp:+fn):*(tn:+fn))
 	pearson_chi_yates = (nrow:*(abs(tp:*tn:-fp:*fn):-(nrow:/2)):^2):/((tp:+fp):*(tp:+fn):*(tn:+fp):*(tn:+fn))
-	mean_sq_contingency = pearson_chi:/nrow // check the equality there otherwise this doesnt hold
+	mean_sq_contingency = (pearson_chi:*(tp:*tn:-fp:*fn)):/nrow
+	pearson_phi = pearson_chi:/nrow
 	goodman_kruskal_tau = (nrow:*((tp:^2:/(tp:+fp)):+(fp:^2:/(tp:+fp)):+(fn:^2:/(fn:+tp)):+(tn:^2:/(fn:+tp))):-(tp:+fn):^2:-(fn:+tn):^2):/(2:*(tp:+fn):*(fn:+tn)) // i didnt check it
 	likelihood_chi = 2:*tp:*log((tp:*nrow):/((tp:+fp):*(tp:+fn))):+2:*fp:*log((fp:*nrow):/((tp:+fp):*(fp:*tn))):+2:*tn:*log((tn:*nrow):/((tn:+fp):*(tn:+fn))):+2:*fn:*log((fn:*nrow):/((tp:+fn):*(fn:+tn)))
 	pearson_c = sqrt((pearson_chi:/nrow):/(1:+pearson_chi:/nrow))
+	pearson_c_2 = sqrt(pearson)
 	cramer_v = sqrt(pearson_chi:/nrow)
 	cramer_v_bias = sqrt(pearson_chi:/(nrow:*(2:-(1:/(nrow:-1)))))
 	
@@ -462,15 +485,14 @@ function classify(string varlist, string AtClasses) {
 
 	brier_vec = J(nrow, 1, 0)
 	logscore_vec = J(nrow, 1, 0)
-	spher_vec = J(nrow, 1, 0)
 	power_vec = J(nrow, 1, 0)
 	pseudo_vec = J(nrow, 1, 0)
 
 
 	//Power score
 	for (i=1;i<=nrow;i++) {
-			power_vec[i] = power_vec[i] + 1/power_beta
-	for (j=1;j<=ncol;j++) {
+		power_vec[i] = power_vec[i] + 1/power_beta
+		for (j=1;j<=ncol;j++) {
 			if (y[i] == j) {
 				power_vec[i] = power_vec[i] + (power_beta-1)/power_beta * X[i,j]^power_beta - X[i,j]^(power_beta-1)
 			} else {
@@ -494,29 +516,62 @@ function classify(string varlist, string AtClasses) {
 		pseudo_vec[i] = numerator_i/(denominator_i^((pseudo_beta-1)/pseudo_beta))
 	}
 
-
-	//Brier, log and spherical score
+	spher_sum = 0
+	s_sum = 0
+	//Brier, log, zero-one and spherical score
 	for (i=1;i<=nrow;i++) {
-	for (j=1;j<=ncol;j++) {
+		spher_sum_top = 0
+		spher_sum_bot = 0
+		prob_max = rowmax(X[i,.])
+		m_count = 0
+		for (j=1;j<=ncol;j++) {
 			if (y[i] == j) {
-				brier_vec[i] = brier_vec[i] + (1 - X[i,j])^2
-				logscore_vec[i] = logscore_vec[i] - log(X[i,j])
-				spher_vec[i] = spher_vec[i] + X[i,j]/(sqrt((X[i,j])^2 + (1-X[i,j])^2))
+				brier_vec[i] = brier_vec[i] + (X[i,j]-1)^2
+				logscore_vec[i] = logscore_vec[i] + log(X[i,j])
+				spher_sum_top = spher_sum_top + X[i,j]
+				spher_sum_bot = spher_sum_bot + X[i,j]^2
 			} else {
-				brier_vec[i] = brier_vec[i] + (0 - X[i,j])^2
-				logscore_vec[i] = logscore_vec[i] - log(1 - X[i,j])
-				spher_vec[i] = spher_vec[i] + (1 - X[i,j])/(sqrt( (X[i,j])^2 + (1-X[i,j])^2))
+				brier_vec[i] = brier_vec[i] + (X[i,j]-0)^2
+				logscore_vec[i] = logscore_vec[i] + log(1 - X[i,j])
+				spher_sum_bot = spher_sum_bot + X[i,j]^2
+			}
+			if (X[i,j] == prob_max) {
+				m_count = m_count + 1
 			}
 		}
+		spher_sum = spher_sum + spher_sum_top/sqrt(spher_sum_bot)
+		if (m_count > 0) {
+			s_sum = s_sum + 1/m_count
+		} 
+	}
+	
+	// ranked probability score
+	rkd = 0
+	for (i=1;i<=nrow;i++) {
+		rkd_sum = 0
+		for (j=1;j<=ncol-1;j++) {
+			rkd_prob_sum = 0
+			rkd_d_sum = 0
+			for (k=1;k<=j;k++) {
+				if (y[i] == k) {
+					rkd_d_sum = rkd_d_sum + 1
+				}
+				rkd_prob_sum = rkd_prob_sum + X[i,k]
+			}
+			rkd_sum = rkd_sum + (rkd_prob_sum-rkd_d_sum)^2
+		}
+		rkd = rkd + rkd_sum
 	}
 
-	brier_score = sum(brier_vec)/nrow
-	log_score = sum(logscore_vec)/nrow
-	spherical_score = sum(spher_vec)/nrow
+	brier_score = sum(brier_vec)/(nrow*2)
+	log_score = -sum(logscore_vec)/nrow
+	spherical_score = 1-spher_sum/nrow
 	power_score = sum(power_vec)/nrow
-	pseudo_score = 1 - sum(power_vec)/nrow
+	pseudo_score = 1 - sum(pseudo_vec)/nrow
+	zero_one_score = 1-s_sum/nrow
 
 	ranked_probability_score = matrix_mse(running_rowsum(X) - running_rowsum(q))
+	rkd = rkd/(nrow*(ncol-1))
 
 
 	tot = sum(conf_mat)
@@ -552,7 +607,9 @@ function classify(string varlist, string AtClasses) {
 	printf("Logarithmic score        = {bf:%9.4f} \n", log_score)
 	printf("Spherical score          = {bf:%9.4f} \n", spherical_score)
 	printf("Pseudo spherical score   = {bf:%9.4f} \n", pseudo_score)
+	printf("Zero-one score           = {bf:%9.4f} \n", zero_one_score)
  	printf("Ranked probability score = {bf:%9.4f} \n", ranked_probability_score)
+	printf("Ranked probability score2= {bf:%9.4f} \n", rkd)
 
 
 	if(ncat > 2){
@@ -604,12 +661,13 @@ function classify(string varlist, string AtClasses) {
 	}
 
 	print_vector("Precision                = ", precision_k[printrows::ncat])
+	print_vector("Gilbert Score            = ", gilbert_score[printrows::ncat])
 	print_vector("Negative predicted value = ", nega_pred_val_k[printrows::ncat])
 	print_vector("Recall                   = ", recall_k[printrows::ncat])
 	print_vector("Specificity              = ", specificity_k[printrows::ncat])
 	print_vector("Balanced accuracy        = ", balanced_acc_k[printrows::ncat])
 	print_vector("Prevalence               = ", prevalence_k[printrows::ncat])
-	print_vector("False positive rate      = ", false_pos_k[printrows::ncat])
+	print_vector("False positive rate      = ", false_pos_rate_k[printrows::ncat])
 	print_vector("False alarm rate         = ", false_alarm_rate_k[printrows::ncat])
 	print_vector("False negative rate      = ", false_neg_rate_k[printrows::ncat])
 	print_vector("False omission rate      = ", false_omm_rate_k[printrows::ncat])
@@ -624,10 +682,12 @@ function classify(string varlist, string AtClasses) {
 	print_vector("Yule's Y coefficient     = ", yule_y_coeff_k[printrows::ncat])
 	print_vector("Fowlkes-Mallows index    = ", fowlkes_mallows_k[printrows::ncat])
 	print_vector("F1-score                 = ", f1_score_k[printrows::ncat])
+	print_vector("F1-score (for c00)       = ", f1_score_k_c00[printrows::ncat])
 	print_vector("FB-score	               = ", fb_score_k[printrows::ncat])
 	print_vector("Correlation (Matthews)   = ", matthew_corr_k[printrows::ncat])
 	print_vector("Threat score             = ", threat_k[printrows::ncat])
 	print_vector("Gilbert Skill Score      = ", gilbert_skill_score_k[printrows::ncat])
+	print_vector("Gilbert Wells            = ", gilbert_wells[printrows::ncat])
 	print_vector("Scott's pi coefficient   = ", scott_pi_k[printrows::ncat])
 	print_vector("Peirce's skill score     = ", peirce_skill_score_k[printrows::ncat])
 	print_vector("Cohen's kappa coefficient= ", cohen_kappa_k[printrows::ncat])
@@ -640,6 +700,7 @@ function classify(string varlist, string AtClasses) {
 	//From here after draft
 	print_vector("Consonni-Todeschini #4   = ", consonni_todeschini[printrows::ncat])
 	print_vector("Van der Maarel	       = ", van_der_maarel[printrows::ncat])
+	print_vector("Van der Maarel (for c00) = ", van_der_maarel_c00[printrows::ncat])
 	print_vector("Anderberg #1             = ", anderberg_one[printrows::ncat])
 	print_vector("Anderberg #2             = ", anderberg_two[printrows::ncat])
 	print_vector("Benini                   = ", benini[printrows::ncat])
@@ -671,7 +732,7 @@ function classify(string varlist, string AtClasses) {
 	print_vector("T combined cost	       = ", t_cost[printrows::ncat])
 	print_vector("Simpson		       = ", simpson[printrows::ncat])
 	print_vector("Kent-Foster #1	       = ", kent_foster_one[printrows::ncat])
-	print_vector("Braum-Blanquet	       = ", braum_blanquet[printrows::ncat])
+	print_vector("Braun-Blanquet	       = ", braum_blanquet[printrows::ncat])
 	print_vector("Chord dissimilarity      = ", chord_dissimilarity[printrows::ncat])
 	print_vector("Rousseau skill	       = ", rousseau_skill[printrows::ncat])
 	print_vector("Anonymous #1	       = ", anonymous_one[printrows::ncat])
@@ -681,6 +742,7 @@ function classify(string varlist, string AtClasses) {
 	print_vector("Consonni-Todeschini #1   = ", consonni_todeschini_one[printrows::ncat])
 	print_vector("Consonni-Todeschini #2   = ", consonni_todeschini_two[printrows::ncat])
 	print_vector("Consonni-Todeschini #3   = ", consonni_todeschini_three[printrows::ncat])
+	print_vector("Consonni-Todeschini #4   = ", consonni_todeschini_four[printrows::ncat])
 	print_vector("Consonni-Todeschini #5   = ", consonni_todeschini_five[printrows::ncat])
 	print_vector("Matching  	       = ", matching[printrows::ncat])
 	print_vector("Balance error rate       = ", balance_error_rate[printrows::ncat])
@@ -693,6 +755,7 @@ function classify(string varlist, string AtClasses) {
 	print_vector("Negative LR	       = ", negative_lik[printrows::ncat])
 	print_vector("Anderberg D coefficient  = ", anderberg_d[printrows::ncat])
 	print_vector("AMPLE similarity         = ", ample_sim[printrows::ncat])
+	print_vector("Relative decrease         = ", relative_dec[printrows::ncat])
 	print_vector("Baulieu #1  	       = ", baulieu_one[printrows::ncat])
 	print_vector("Baulieu #2  	       = ", baulieu_two[printrows::ncat])
 	print_vector("Baulieu #3  	       = ", baulieu_three[printrows::ncat])
@@ -709,7 +772,7 @@ function classify(string varlist, string AtClasses) {
 	print_vector("Size difference          = ", size_diff[printrows::ncat])
 	print_vector("Shape difference 	       = ", shape_diff[printrows::ncat])
 	print_vector("Sneath pattern diff.     = ", sneath_patt_diff[printrows::ncat])
-	print_vector("Koppen 1870	       = ", koppen[printrows::ncat])
+	print_vector("Koppen (1870)	       = ", koppen[printrows::ncat])
 	print_vector("Binary shape diss.       = ", binary_shape[printrows::ncat])
 	print_vector("Rogot-Goldberg #1        = ", rogot_goldberg_one[printrows::ncat])
 	print_vector("Lacour		       = ", lacour[printrows::ncat])
@@ -724,6 +787,7 @@ function classify(string varlist, string AtClasses) {
 	print_vector("Goodman-Kruskal #1       = ", goodman_kruskal_1[printrows::ncat])
 	print_vector("Goodman-Kruskal #2       = ", goodman_kruskal_2[printrows::ncat])
 	print_vector("Goodman-Kruskal #3       = ", goodman_kruskal_3[printrows::ncat])
+	print_vector("Goodman-Kruskal #4       = ", goodman_kruskal_4[printrows::ncat])
 	print_vector("Adj. F-score             = ", adj_f_score[printrows::ncat])
 	print_vector("Pearson MSCC             = ", pearson_mscc[printrows::ncat])
 	print_vector("Gower                    = ", gower[printrows::ncat])
@@ -732,9 +796,10 @@ function classify(string varlist, string AtClasses) {
 	print_vector("Loevinger                = ", loevinger[printrows::ncat])
 	print_vector("Pearson Heron #2         = ", pearson_heron_2[printrows::ncat])
 	print_vector("Forbes D                 = ", forbes_d[printrows::ncat]) // will we also be in forbes after this?
-	print_vector("Alroy corr. Forbes       = ", pearson_heron_2[printrows::ncat])
+	print_vector("Alroy corr. Forbes       = ", alroy_forbes[printrows::ncat])
 	// page 20 starts here
 	print_vector("Forbes #2                = ", forbes_2[printrows::ncat])
+	print_vector("Maxwell-Pilliner         = ", maxwell_pilliner[printrows::ncat])
 	print_vector("Gini association         = ", gini_ass[printrows::ncat])
 	print_vector("Fleiss                   = ", fleiss[printrows::ncat])
 	print_vector("Kuhns #1                 = ", kuhns_1[printrows::ncat])
@@ -765,12 +830,13 @@ function classify(string varlist, string AtClasses) {
 	print_vector("Sokal distance           = ", sokal_dist[printrows::ncat])
 	print_vector("Yule distance            = ", yule_dist[printrows::ncat])
 	print_vector("Quetelet                 = ", quetelet[printrows::ncat])
-	print_vector("Köppen                   = ", koppen[printrows::ncat])
+	print_vector("Köppen index             = ", koppen_index[printrows::ncat])
 	print_vector("Heidke skill score       = ", heidke[printrows::ncat])
 	print_vector("Shrank skill score       = ", shrank[printrows::ncat])
 	print_vector("Tarwid                   = ", tarwid[printrows::ncat])
 	print_vector("Relative accuracy (wgtd) = ", weighted_rel_acc[printrows::ncat])
 	print_vector("Krippendorf alpha        = ", krippendorf_a[printrows::ncat])
+	print_vector("Unnamed coefficient      = ", unnamed_coefficient[printrows::ncat])
 	print_vector("Scott                    = ", scott_coeff[printrows::ncat])
 	print_vector("Gilbert-Wells            = ", gilber_wells[printrows::ncat])
 	print_vector("Weighted mut. Inf.       = ", weighted_mut_inf[printrows::ncat])
@@ -784,13 +850,14 @@ function classify(string varlist, string AtClasses) {
 	print_vector("Pearson Chi              = ", pearson_chi[printrows::ncat])
 	print_vector("Pearson Chi (Yates)      = ", pearson_chi_yates[printrows::ncat])
 	print_vector("Mean square contingency  = ", mean_sq_contingency[printrows::ncat])
+	print_vector("Pearson Phi              = ", pearson_phi[printrows::ncat])
 	print_vector("Goodman Kruskal Tau      = ", goodman_kruskal_tau[printrows::ncat])
 	print_vector("Likelihood Chi           = ", likelihood_chi[printrows::ncat])
 	print_vector("Pearson C                = ", pearson_c[printrows::ncat])
 	print_vector("Cramer V                 = ", cramer_v[printrows::ncat])
 	print_vector("Cramer V (bias corr.)    = ", cramer_v_bias[printrows::ncat])
 	print_vector("Roux #1                  = ", roux_1[printrows::ncat])
-	print_vector("Roux #1                  = ", roux_1[printrows::ncat])
+	print_vector("Roux #2                  = ", roux_2[printrows::ncat])
 	print_vector("Roux #1                  = ", roux_1[printrows::ncat])
 
 	// this is page 29 onwards
