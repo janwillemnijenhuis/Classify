@@ -46,11 +46,26 @@ function classify(string varlist, string AtClasses) {
 	coltitle = "Predicted"
 	
 	// computation of multiclass measures
+	n_kk = sum((y:==prediction))
 	accuracy = sum((y :== prediction))/nrow
 	misclassification_rate = 1 - accuracy
 	balanced_acc_row = J(1, ncol, 0)
 	rogot_goldberg = 0
-	gktm = 0 // goodman kruskal tau multi
+
+	gktm_numerator = 0 // goodman kruskal tau multi
+	gktm_denominator = nrow^2
+
+	gktm_numerator_inv = 0 // goodman kruskal tau multi
+	gktm_denominator_inv = nrow^2
+
+	gorodkin_numerator = n_kk * nrow
+	gorodkin_den_left = nrow^2
+	gorodkin_den_right = nrow^2
+
+	heidke_multi_numerator = n_kk * nrow
+	heidke_multi_denominator = nrow^2
+
+	
 	gkg_1= 0
 	gkg_2=0
 	theil_u_1=0
@@ -69,11 +84,30 @@ function classify(string varlist, string AtClasses) {
 	n_ij_k_abs = 0
 	pcm = 0 // pearsion chi multi
 	lik_g = 0 // likelihood g
+	inf_quality_numerator = 0
+	inf_quality_denominator = 0
 	adj_r_1=0
 	adj_r_2=0
 	adj_r_3=0
+
 	kendall_1=0
 	kendall_2=0
+
+	kendall_alt_1 = 0
+	kendall_alt_2 = 0
+
+
+	for (i=1;i<=ncol;i++) {
+		kendall_alt_1_temp = 0
+		kendall_alt_2_temp = 0
+		for (h=i+1;h<=ncol;h++){
+			kendall_alt_1_temp  = kendall_alt_1_temp  + rowsum_conf_mat[h]
+			kendall_alt_2_temp  = kendall_alt_2_temp  + colsum_conf_mat[h]
+		}
+		kendall_alt_1 = kendall_alt_1 + rowsum_conf_mat[i] * kendall_alt_1_temp
+		kendall_alt_2 = kendall_alt_2 + rowsum_conf_mat[i] * kendall_alt_2_temp
+	}
+	
 	for (i=1;i<=ncol;i++) {
 	    p_plus_a_2 = p_plus_a_2 + (colsum_conf_mat[i]*rowsum_conf_mat[i])^2
 	    a2 = a2 + colsum_conf_mat[i]^2
@@ -82,6 +116,7 @@ function classify(string varlist, string AtClasses) {
 	    balanced_acc_row[i] = conf_mat[i,i]/colsum_conf_mat[i]
 		rogot_goldberg = rogot_goldberg + balanced_acc_row[i] + conf_mat[i,i]/rowsum_conf_mat[i] 
 		gktm_2 = 0 
+		gktm_2_inv = 0
 		for (j=1;j<=ncol;j++) {
 		    kendall_1 = kendall_1 + rowsum_conf_mat[i]*(rowsum_conf_mat[i]-1)/2
 			kendall_2 = kendall_2 + colsum_conf_mat[i]*(colsum_conf_mat[i]-1)/2
@@ -115,6 +150,16 @@ function classify(string varlist, string AtClasses) {
 			}
 		
 			gktm_2 = gktm_2 + conf_mat[i,j]^2/rowsum_conf_mat[i]
+			gktm_2_inv = gktm_2_inv + conf_mat[i,j]^2/colsum_conf_mat[i]
+
+			gorodkin_numerator = gorodkin_numerator - colsum_conf_mat[i] * rowsum_conf_mat[i]
+			gorodkin_den_left = gorodkin_den_left - colsum_conf_mat[i]
+			gorodkin_den_right = gorodkin_den_right - rowsum_conf_mat[i]
+
+			heidke_multi_numerator = heidke_multi_numerator - colsum_conf_mat[i] * rowsum_conf_mat[i]
+			heidke_multi_denominator = heidke_multi_denominator - colsum_conf_mat[i] * rowsum_conf_mat[i]
+			
+			
 			n_hmax_kmax = 0
 			n_hmax_kmin = 0
 			for (h=i+1;h<=ncol;h++){
@@ -132,14 +177,23 @@ function classify(string varlist, string AtClasses) {
 			
 			if ((n_ij/(rowsum_conf_mat[i]+colsum_conf_mat[j]))>0) {
 				theil_u_1 = theil_u_1 + n_ij*log((n_ij/(rowsum_conf_mat[i]+colsum_conf_mat[j])))
-				lik_g = lik_g + log((n_ij*nrow)/(rowsum_conf_mat[i]*colsum_conf_mat[j]))
+				lik_g = lik_g + n_ij*log((n_ij*nrow)/(rowsum_conf_mat[i]*colsum_conf_mat[j]))
+				inf_quality_numerator = inf_quality_numerator + n_ij/nrow * log(rowsum_conf_mat[i]*colsum_conf_mat[j]/(nrow^2))/log(2)
+				inf_quality_denominator = inf_quality_denominator + n_ij/nrow * log(n_ij/nrow)/log(2)
+				
 			} // is this right?
 			theil_u_2 = theil_u_2 + log(colsum_conf_mat[j])*colsum_conf_mat[j]
 			
 			pcm = pcm + (n_ij-rowsum_conf_mat[i]*colsum_conf_mat[j]/nrow)^2/(rowsum_conf_mat[i]*colsum_conf_mat[j]/nrow)
 			
 		}
-		gktm = gktm + (nrow*gktm_2-colsum_conf_mat[i]^2)/(nrow^2-colsum_conf_mat[i]^2)
+		gktm_numerator = gktm_numerator + nrow*gktm_2-colsum_conf_mat[i]^2
+		gktm_denominator = gktm_denominator - colsum_conf_mat[i]^2
+
+		gktm_numerator_inv = gktm_numerator_inv + nrow*gktm_2_inv - rowsum_conf_mat[i]^2
+		gktm_denominator_inv = gktm_denominator_inv - rowsum_conf_mat[i]^2
+
+
 	}
 	theil_u = -1*theil_u_1/theil_u_2
 	
@@ -184,21 +238,33 @@ function classify(string varlist, string AtClasses) {
 	peirce_skill_score = (sum((y :== prediction))*nrow - pa)/(nrow^2-a2)
 	clayton_skill_score = (sum((y :== prediction))*nrow - pa)/(nrow^2-p2)
 	// 2nd draft, from page 29 onwards
-	n_kk = sum((y:==prediction))
 	rogot_goldberg = rogot_goldberg/(2*ncol)
+
 	goodman_kruskal_lambda = (n_kk-rowmax(colsum_conf_mat))/(nrow-rowmax(colsum_conf_mat))
+
 	// gktm above
+	gktm = gktm_numerator / gktm_denominator
+	gktm_inv = gktm_numerator_inv / gktm_denominator_inv
 	gkg = (gkg_1-gkg_2)/(gkg_1+gkg_2)
 	stuart = (stuart_1-stuart_2)/((ncol-1)/ncol)
+	gorodkin = gorodkin_numerator / sqrt(gorodkin_den_left * gorodkin_den_right)
+	heidke_multi = heidke_multi_numerator / heidke_multi_denominator
+
 	tonnies = 2*n_kk + n_ij_abs - 2* n_ij_k-n_ij_k_abs
 	koppen_ms = accuracy + (1/(2*nrow))*n_ij_abs
 	msc = pcm / nrow
 	lik_g = 2*lik_g
+	mutual_information = lik_g /(2*nrow)
 	c_contingency = sqrt((pcm/nrow)/(1+(pcm/nrow)))
-	cramer_v_multi = sqrt((pcm/nrow)) // i took the easier approach
-	cramer_v_bias_multi = sqrt(pcm/(nrow*(2-(1/(nrow-1)))))
+	cramer_v_multi = (pcm/(nrow-1)) // i took the easier approach
+	tschuprow = sqrt(cramer_v_multi)
+
+	cramer_v_bias_multi =   colmax(((pcm - (ncol-1)^2/(nrow-1))/(ncol-(ncol-1)^2/(nrow-1))\0))
+	inf_quality = inf_quality_numerator / inf_quality_denominator - 1
+
 	adj_rand_index = (adj_r_1-adj_r_2*adj_r_3/comb(nrow,2))/(0.5*(adj_r_2+adj_r_3)-adj_r_2*adj_r_3/comb(nrow,2))
 	kendall_tau = (stuart_1-stuart_2)/sqrt((comb(nrow,2)-kendall_1)*(comb(nrow,2)-kendall_2))
+	kendall_tau_alt = (stuart_1-stuart_2)/sqrt(kendall_alt_1* kendall_alt_2)
 	
 	// computation of class specific measures
 	true_pos_k = J(1,ncol,0)
@@ -637,7 +703,7 @@ function classify(string varlist, string AtClasses) {
 		printf("Scott's pi coefficient   = {bf:%9.4f} \n", scott_pi)
 		printf("Peirce's skill score     = {bf:%9.4f} \n", peirce_skill_score)
 		printf("Clayton skill score      = {bf:%9.4f} \n", clayton_skill_score)
-		printf("Gerity skill score       = {bf:%9.4f} \n", gsk)
+		printf("Gerrity skill score       = {bf:%9.4f} \n", gsk)
 		printf("Theil U                  = {bf:%9.4f} \n", theil_u)
 		printf("Tönnies                  = {bf:%9.4f} \n", tonnies)
 		printf("Köppen                   = {bf:%9.4f} \n", koppen_ms)
