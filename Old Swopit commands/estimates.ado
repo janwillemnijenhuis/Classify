@@ -457,6 +457,7 @@ function classify(string varlist, string AtClasses) {
 	pearson_c_2 = sqrt(pearson)
 	cramer_v = sqrt(pearson_chi:/nrow)
 	cramer_v_bias = sqrt(pearson_chi:/(nrow:*(2:-(1:/(nrow:-1)))))
+	doolittle_k = tp:^2:/(fp:*fn)
 	
 	
 	
@@ -466,14 +467,20 @@ function classify(string varlist, string AtClasses) {
 
 	
 	// weighted averages of class-specific metrics
-	class_spec_metrics_mat = (precision_k\nega_pred_val_k\recall_k\specificity_k\balanced_acc_k\prevalence_k\false_pos_rate_k\false_alarm_rate_k\false_neg_rate_k\false_omm_rate_k\bias_score_k\pos_lik_ratio_k\neg_lik_ratio_k\youden_j_k\markedness_k\informedness_k\diagnostic_odds_k\yule_q_coeff_k\yule_y_coeff_k\fowlkes_mallows_k\f1_score_k\fb_score_k\matthew_corr_k\threat_k\gilbert_skill_score_k\scott_pi_k\peirce_skill_score_k\cohen_kappa_k\clayton_skill_score_k\extr_dep_score_k\symmetric_extr_dep_score_k\prev_threshold_k\adj_noise_to_signal_k)
+	class_spec_metrics_mat = (precision_k\nega_pred_val_k\recall_k\specificity_k\balanced_acc_k\prevalence_k\false_pos_rate_k\false_alarm_rate_k\false_neg_rate_k\false_omm_rate_k\bias_score_k\pos_lik_ratio_k\neg_lik_ratio_k\youden_j_k\markedness_k\informedness_k\diagnostic_odds_k\yule_q_coeff_k\yule_y_coeff_k\fowlkes_mallows_k\f1_score_k\fb_score_k\matthew_corr_k\threat_k\gilbert_skill_score_k\scott_pi_k\peirce_skill_score_k\cohen_kappa_k\clayton_skill_score_k\extr_dep_score_k\symmetric_extr_dep_score_k\prev_threshold_k\adj_noise_to_signal_k\russel_rao\kulczynski_one\kulczynski_two\johnson\norm_coallacation\braum_blanquet\simpson\sokal_sneath\upholt_s\jaccard\anderberg_one\sorensen\van_der_maarel\lance_williams\mountford\benini\rousseau_skill\michelet\doolittle_k\forbes_d\mcconnaughey\fossum\forbes_2\tarwid\size_diff\sneath_patt_diff\binary_shape\baulieu_one\baulieu_two\baulieu_four\driver_kroeber\norm_google_dist\consonni_todeschini_three\consonni_todeschini_four\gilber_wells\weighted_mut_inf\extr_dep_score_k\symmetric_extr_dep_score_k\gini_index\modified_gini\hellinger\fager\fager_mcgowan\u_cost\s_cost\r_cost\t_cost\kent_foster_one\kent_foster_two\chord_dissimilarity)
 	
-	weighted_avg = J(33,1,0)
+	length_wm = rows(class_spec_metrics_mat)
+	weighted_avg = J(length_wm,1,0)
 	
-	for (i=1; i<=33; i++) {
+	for (i=1; i<=length_wm; i++) {
 		for (j=1; j<=ncol; j++) {
 			weighted_avg[i] = weighted_avg[i] + class_spec_metrics_mat[i,j]*colsum_conf_mat[j]/nrow
 		}
+	}
+	
+	macro_avg = J(length_wm,1,0)
+	for (i=1; i<=length_wm; i++) {
+		macro_avg[i] = rowsum(class_spec_metrics_mat[i,.])/ncol
 	}
 
 
@@ -856,19 +863,100 @@ function classify(string varlist, string AtClasses) {
 	print_vector("Pearson C                = ", pearson_c[printrows::ncat])
 	print_vector("Cramer V                 = ", cramer_v[printrows::ncat])
 	print_vector("Cramer V (bias corr.)    = ", cramer_v_bias[printrows::ncat])
-	print_vector("Roux #1                  = ", roux_1[printrows::ncat])
-	print_vector("Roux #2                  = ", roux_2[printrows::ncat])
-	print_vector("Roux #1                  = ", roux_1[printrows::ncat])
-
+	print_vector("Doolittle                = ", doolittle_k[printrows::ncat])
+	
 	// this is page 29 onwards
 
 	//Untill here
 
 	if(ncat > 2){
 		printf("\nMacro averages of class-specific metrics\n")
-		printf("F1-score                 = {bf:%9.4f}\n", f1_macro)
-		printf("FB-score                 = {bf:%9.4f}\n", fb_macro)
-		printf("Fowlkes-Mallows index    = {bf:%9.4f}\n", fowlkes_mallows_index)
+		printf("Precision                = {bf:%9.4f} \n", macro_avg[1])
+		printf("Negative predicted value = {bf:%9.4f} \n", macro_avg[2])
+		printf("Recall                   = {bf:%9.4f} \n", macro_avg[3])
+		printf("Specificity              = {bf:%9.4f} \n", macro_avg[4])
+		printf("Balanced accuracy        = {bf:%9.4f} \n", macro_avg[5])
+		printf("Prevalence               = {bf:%9.4f} \n", macro_avg[6])
+		printf("False positive rate      = {bf:%9.4f} \n", macro_avg[7])
+		printf("False alarm rate         = {bf:%9.4f} \n", macro_avg[8])
+		printf("False negative rate      = {bf:%9.4f} \n", macro_avg[9])
+		printf("False omission rate      = {bf:%9.4f} \n", macro_avg[10])
+		printf("Bias score               = {bf:%9.4f} \n", macro_avg[11])
+		printf("Positive likelihood ratio= {bf:%9.4f} \n", macro_avg[12])
+		printf("Negative likelihood ratio= {bf:%9.4f} \n", macro_avg[13])
+		printf("Youden's J statistic     = {bf:%9.4f} \n", macro_avg[14])  
+		printf("Markedness               = {bf:%9.4f} \n", macro_avg[15])
+		printf("Informedness             = {bf:%9.4f} \n", macro_avg[16])
+		printf("Diagnostic odds ratio    = {bf:%9.4f} \n", macro_avg[17])
+		printf("Yule's Q coefficient     = {bf:%9.4f} \n", macro_avg[18])
+		printf("Yule's Y coefficient     = {bf:%9.4f} \n", macro_avg[19])
+		printf("Fowlkes-Mallows index    = {bf:%9.4f} \n", macro_avg[20])
+		printf("F1-score                 = {bf:%9.4f} \n", macro_avg[21])
+		printf("FB-score                 = {bf:%9.4f} \n", macro_avg[22])
+		printf("Correlation (Matthews)   = {bf:%9.4f} \n", macro_avg[23])
+		printf("Threat score             = {bf:%9.4f} \n", macro_avg[24])
+		printf("Gilbert Skill Score      = {bf:%9.4f} \n", macro_avg[25])
+		printf("Scott's pi coefficient   = {bf:%9.4f} \n", macro_avg[26])
+		printf("Peirce's skill score     = {bf:%9.4f} \n", macro_avg[27])
+		printf("Cohen's kappa coefficient= {bf:%9.4f} \n", macro_avg[28])
+		printf("Clayton Skill Score      = {bf:%9.4f} \n", macro_avg[29])
+		printf("Extreme dependency score = {bf:%9.4f} \n", macro_avg[30])
+		printf("Symm. extr. dep. score   = {bf:%9.4f} \n", macro_avg[31])
+		printf("Prevalence threshold     = {bf:%9.4f} \n", macro_avg[32])
+		printf("Adj. N2S ratio           = {bf:%9.4f} \n", macro_avg[33])
+		printf("Russel-Rao               = {bf:%9.4f} \n", macro_avg[34])
+		printf("Kulczynski #1            = {bf:%9.4f} \n", macro_avg[35])
+		printf("Kulczynski #2            = {bf:%9.4f} \n", macro_avg[36])
+		printf("Johnson                  = {bf:%9.4f} \n", macro_avg[37])
+		printf("Normalized Collocation   = {bf:%9.4f} \n", macro_avg[38])
+		printf("Braun-Blanquet           = {bf:%9.4f} \n", macro_avg[39])
+		printf("Simpson                  = {bf:%9.4f} \n", macro_avg[40])
+		printf("Sokal-Sneath #1          = {bf:%9.4f} \n", macro_avg[41])
+		printf("Upholt S                 = {bf:%9.4f} \n", macro_avg[42])
+		printf("Jaccard 3W               = {bf:%9.4f} \n", macro_avg[43])
+		printf("Anderberg                = {bf:%9.4f} \n", macro_avg[44])
+		printf("Sorensen                 = {bf:%9.4f} \n", macro_avg[45])
+		printf("Van der Maarel           = {bf:%9.4f} \n", macro_avg[46])
+		printf("Lance-Williams           = {bf:%9.4f} \n", macro_avg[47])
+		printf("Mountford                = {bf:%9.4f} \n", macro_avg[48])
+		printf("Benini                   = {bf:%9.4f} \n", macro_avg[49])
+		printf("Rousseau skill           = {bf:%9.4f} \n", macro_avg[50])
+		printf("Michelet                 = {bf:%9.4f} \n", macro_avg[51])
+		printf("Doolittle                = {bf:%9.4f} \n", macro_avg[52])
+		printf("Forbes D                 = {bf:%9.4f} \n", macro_avg[53])
+	    printf("McConnaughey             = {bf:%9.4f} \n", macro_avg[54])
+		printf("Fossum                   = {bf:%9.4f} \n", macro_avg[55])
+		printf("Forbes #2                = {bf:%9.4f} \n", macro_avg[56])
+		printf("Tarwid                   = {bf:%9.4f} \n", macro_avg[57])
+		printf("Size difference          = {bf:%9.4f} \n", macro_avg[58])
+		printf("Sneath pattern diff.     = {bf:%9.4f} \n", macro_avg[59])
+		printf("Binary shape idss.       = {bf:%9.4f} \n", macro_avg[60])
+		
+		printf("Baulieu #1               = {bf:%9.4f} \n", macro_avg[61])
+		printf("Baulieu #2               = {bf:%9.4f} \n", macro_avg[62])
+		printf("Baulieu #4               = {bf:%9.4f} \n", macro_avg[63])
+		printf("Driver-Kroeber           = {bf:%9.4f} \n", macro_avg[64])
+		printf("Norm. Google distance    = {bf:%9.4f} \n", macro_avg[65])
+	    printf("Consonni-Todeschini #3   = {bf:%9.4f} \n", macro_avg[66])
+		printf("Consonni-Todeschini #4   = {bf:%9.4f} \n", macro_avg[67])
+		printf("Gilbert-Wells            = {bf:%9.4f} \n", macro_avg[68])
+		
+		printf("Weighted mut. inf.       = {bf:%9.4f} \n", macro_avg[69])
+		printf("Extreme dependency       = {bf:%9.4f} \n", macro_avg[70])
+		printf("Symm. extr. dep.         = {bf:%9.4f} \n", macro_avg[71])
+		printf("Gini index               = {bf:%9.4f} \n", macro_avg[72])
+		printf("Modified Gini index      = {bf:%9.4f} \n", macro_avg[73])
+		printf("Hellinger                = {bf:%9.4f} \n", macro_avg[74])
+		printf("Fager                    = {bf:%9.4f} \n", macro_avg[75])
+		printf("Fager-McGowan            = {bf:%9.4f} \n", macro_avg[76])
+		
+		printf("U-cost                   = {bf:%9.4f} \n", macro_avg[77])
+	    printf("S-cost                   = {bf:%9.4f} \n", macro_avg[78])
+		printf("R-cost                   = {bf:%9.4f} \n", macro_avg[79])
+	    printf("T-cost                   = {bf:%9.4f} \n", macro_avg[80])
+		printf("Kent-Foster #1           = {bf:%9.4f} \n", macro_avg[81])
+	    printf("Kent-Foster #2           = {bf:%9.4f} \n", macro_avg[82])
+		printf("Chord dissimilarity      = {bf:%9.4f} \n", macro_avg[83])
 		
 		printf("\nWeighted averages of class specific metrics\n")
 		printf("Precision                = {bf:%9.4f} \n", weighted_avg[1])
@@ -904,6 +992,62 @@ function classify(string varlist, string AtClasses) {
 		printf("Symm. extr. dep. score   = {bf:%9.4f} \n", weighted_avg[31])
 		printf("Prevalence threshold     = {bf:%9.4f} \n", weighted_avg[32])
 		printf("Adj. N2S ratio           = {bf:%9.4f} \n", weighted_avg[33])
+		printf("Russel-Rao               = {bf:%9.4f} \n", weighted_avg[34])
+		printf("Kulczynski #1            = {bf:%9.4f} \n", weighted_avg[35])
+		printf("Kulczynski #2            = {bf:%9.4f} \n", weighted_avg[36])
+		printf("Johnson                  = {bf:%9.4f} \n", weighted_avg[37])
+		printf("Normalized Collocation   = {bf:%9.4f} \n", weighted_avg[38])
+		printf("Braun-Blanquet           = {bf:%9.4f} \n", weighted_avg[39])
+		printf("Simpson                  = {bf:%9.4f} \n", weighted_avg[40])
+		printf("Sokal-Sneath #1          = {bf:%9.4f} \n", weighted_avg[41])
+		printf("Upholt S                 = {bf:%9.4f} \n", weighted_avg[42])
+		printf("Jaccard 3W               = {bf:%9.4f} \n", weighted_avg[43])
+		printf("Anderberg                = {bf:%9.4f} \n", weighted_avg[44])
+		printf("Sorensen                 = {bf:%9.4f} \n", weighted_avg[45])
+		printf("Van der Maarel           = {bf:%9.4f} \n", weighted_avg[46])
+		printf("Lance-Williams           = {bf:%9.4f} \n", weighted_avg[47])
+		printf("Mountford                = {bf:%9.4f} \n", weighted_avg[48])
+		printf("Benini                   = {bf:%9.4f} \n", weighted_avg[49])
+		printf("Rousseau skill           = {bf:%9.4f} \n", weighted_avg[50])
+		printf("Michelet                 = {bf:%9.4f} \n", weighted_avg[51])
+		printf("Doolittle                = {bf:%9.4f} \n", weighted_avg[52])
+		printf("Forbes D                 = {bf:%9.4f} \n", weighted_avg[53])
+	    printf("McConnaughey             = {bf:%9.4f} \n", weighted_avg[54])
+		printf("Fossum                   = {bf:%9.4f} \n", weighted_avg[55])
+		printf("Forbes #2                = {bf:%9.4f} \n", weighted_avg[56])
+		printf("Tarwid                   = {bf:%9.4f} \n", weighted_avg[57])
+		printf("Size difference          = {bf:%9.4f} \n", weighted_avg[58])
+		printf("Sneath pattern diff.     = {bf:%9.4f} \n", weighted_avg[59])
+		printf("Binary shape idss.       = {bf:%9.4f} \n", weighted_avg[60])
+		
+		printf("Baulieu #1               = {bf:%9.4f} \n", weighted_avg[61])
+		printf("Baulieu #2               = {bf:%9.4f} \n", weighted_avg[62])
+		printf("Baulieu #4               = {bf:%9.4f} \n", weighted_avg[63])
+		printf("Driver-Kroeber           = {bf:%9.4f} \n", weighted_avg[64])
+		printf("Norm. Google distance    = {bf:%9.4f} \n", weighted_avg[65])
+	    printf("Consonni-Todeschini #3   = {bf:%9.4f} \n", weighted_avg[66])
+		printf("Consonni-Todeschini #4   = {bf:%9.4f} \n", weighted_avg[67])
+		printf("Gilbert-Wells            = {bf:%9.4f} \n", weighted_avg[68])
+		
+		printf("Weighted mut. inf.       = {bf:%9.4f} \n", weighted_avg[69])
+		printf("Extreme dependency       = {bf:%9.4f} \n", weighted_avg[70])
+		printf("Symm. extr. dep.         = {bf:%9.4f} \n", weighted_avg[71])
+		printf("Gini index               = {bf:%9.4f} \n", weighted_avg[72])
+		printf("Modified Gini index      = {bf:%9.4f} \n", weighted_avg[73])
+		printf("Hellinger                = {bf:%9.4f} \n", weighted_avg[74])
+		printf("Fager                    = {bf:%9.4f} \n", weighted_avg[75])
+		printf("Fager-McGowan            = {bf:%9.4f} \n", weighted_avg[76])
+		
+		printf("U-cost                   = {bf:%9.4f} \n", weighted_avg[77])
+	    printf("S-cost                   = {bf:%9.4f} \n", weighted_avg[78])
+		printf("R-cost                   = {bf:%9.4f} \n", weighted_avg[79])
+	    printf("T-cost                   = {bf:%9.4f} \n", weighted_avg[80])
+		printf("Kent-Foster #1           = {bf:%9.4f} \n", weighted_avg[81])
+	    printf("Kent-Foster #2           = {bf:%9.4f} \n", weighted_avg[82])
+		printf("Chord dissimilarity      = {bf:%9.4f} \n", weighted_avg[83])
+
+
+
 	}
 	
 	
