@@ -2,6 +2,13 @@ capture program drop classify
 program classify, rclass
 	version 14
 	syntax varlist(min=1) [, var(string asis) PREDict]
+
+	mata: excel = xl()
+	capture mata: excel.create_book("Classify Metrics", "Probability scores")
+	mata: excel.load_book("Classify Metrics")
+	capture mata: excel.add_sheet("General metrics")
+	capture mata: excel.add_sheet("Class specific metrics")	
+	mata: excel.close_book()
 	
 	if "`predict'" == "predict" {	
 		mata: y = st_data(., "`varlist'")
