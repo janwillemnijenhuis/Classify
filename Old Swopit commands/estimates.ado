@@ -1,43 +1,88 @@
 version 14
 mata
-function classify(string varlist, string AtClasses) {
-	list = tokens(AtClasses)
-	y = st_data(., varlist)
-	X = st_data(., list)
-	allcat = uniqrows(y)
-	ncat = rows(allcat)
-	rowMax = rowmax(X)
-	nrow = rows(X)
-	ncol = cols(X)
-	
-	q = J(nrow, ncol, 0)
-	for(i=1; i<=ncol; i++) {
-			q[.,i] = (y :== allcat[i])
-	}
+function classify(string varlist ,| string AtClasses, string matrixname) {
 
-	conf_mat = J(ncol, ncol, 0)
-	prediction = J(nrow, 1, 0)
-	for (i=1;i<=nrow;i++) {
-		for (j=1;j<=ncol;j++) {
-			if (X[i,j] == rowMax[i]) {
-				prediction[i] = allcat[j]
-			}
-		}
+
+	if( AtClasses == "Contingency"){
+
+		conf_mat = st_matrix(matrixname)
+		nrow = sum(conf_mat)
+		ncol = cols(conf_mat)
+		allcat = 1::nrow
+		ncat = ncol
+
+		comprob = 0
+
 	}
+	else{
 	
-	for (i=1;i<=nrow;i++) {
-		j = prediction[i]
-		k = y[i]
-		for (l=1;l<=ncol;l++) {
-			cat = allcat[l]
-			if (cat == j) {
-				s = l
-			} 
-			if (cat == k) {
-				t = l
+		y = st_data(., varlist)
+
+		colsy = cols(y)
+
+		if(colsy == 1){
+		
+			comprob = 1
+
+			allcat = uniqrows(y)
+			allcat
+			ncat = rows(allcat)
+	
+			list = tokens(AtClasses)
+			X = st_data(., list)
+			rowMax = rowmax(X)
+	
+			nrow = rows(X)
+			ncol = cols(X)
+	
+			prediction = J(nrow, 1, 0)
+			for (i=1;i<=nrow;i++) {
+				for (j=1;j<=ncol;j++) {
+					if (X[i,j] == rowMax[i]) {
+						prediction[i] = allcat[j]
+					}
+				}
 			}
+	
+		} else if (colsy == 2){
+	
+			comprob = 0
+	
+			prediction = y[,2]
+			y = y[,1]
+	
+			allcat = uniqrows(y)
+			ncat = rows(allcat)
+	
+			nrow = rows(y)
+			ncol = ncat
+	
+		} else{
+			
+			stata(`"noisily display as err "Too many variables given as input""')
 		}
-		conf_mat[s,t]=conf_mat[s,t]+1
+		
+		q = J(nrow, ncol, 0)
+		for(i=1; i<=ncol; i++) {
+				q[.,i] = (y :== allcat[i])
+		}
+		
+		conf_mat = J(ncol, ncol, 0)
+		for (i=1;i<=nrow;i++) {
+			j = prediction[i]
+			k = y[i]
+			for (l=1;l<=ncol;l++) {
+				cat = allcat[l]
+				if (cat == j) {
+					s = l
+				} 
+				if (cat == k) {
+					t = l
+				}
+			}
+			conf_mat[s,t]=conf_mat[s,t]+1
+		}
+	
 	}
 
 	colstripes = "y=" :+ strofreal(allcat) 
@@ -51,7 +96,7 @@ function classify(string varlist, string AtClasses) {
 	misclassification_rate = 1 - accuracy
 	balanced_acc_row = J(1, ncol, 0)
 	rogot_goldberg = 0
-
+	
 	gktm_numerator = 0 // goodman kruskal tau multi
 	gktm_denominator = nrow^2
 
@@ -317,7 +362,6 @@ function classify(string varlist, string AtClasses) {
 	prev_threshold_k = sqrt(false_pos_rate_k):/(sqrt(false_pos_rate_k):+sqrt(recall_k))
 	adj_noise_to_signal_k = false_pos_rate_k:/recall_k
 
-
 	//From here after next draft
 	consonni_todeschini = log(true_pos_k :+ 1) :/ log(true_pos_k :+ false_pos_k :+ false_neg_k :+ 1)
 	van_der_maarel = (2 :* true_pos_k :- false_pos_k :- false_neg_k) :/ (2 :* true_pos_k :+ false_pos_k :+ false_neg_k)
@@ -527,11 +571,6 @@ function classify(string varlist, string AtClasses) {
 	
 	
 	
-	
-
-
-
-	
 	// weighted averages of class-specific metrics
 	class_spec_metrics_mat = (precision_k\nega_pred_val_k\recall_k\specificity_k\balanced_acc_k\prevalence_k\false_pos_rate_k\false_alarm_rate_k\false_neg_rate_k\false_omm_rate_k\bias_score_k\pos_lik_ratio_k\neg_lik_ratio_k\youden_j_k\markedness_k\informedness_k\diagnostic_odds_k\yule_q_coeff_k\yule_y_coeff_k\fowlkes_mallows_k\f1_score_k\fb_score_k\matthew_corr_k\threat_k\gilbert_skill_score_k\scott_pi_k\peirce_skill_score_k\cohen_kappa_k\clayton_skill_score_k\extr_dep_score_k\symmetric_extr_dep_score_k\prev_threshold_k\adj_noise_to_signal_k\russel_rao\kulczynski_one\kulczynski_two\johnson\norm_coallacation\braum_blanquet\simpson\sokal_sneath\upholt_s\jaccard\anderberg_one\sorensen\van_der_maarel\lance_williams\mountford\benini\rousseau_skill\michelet\doolittle_k\forbes_d\mcconnaughey\fossum\forbes_2\tarwid\size_diff\sneath_patt_diff\binary_shape\baulieu_one\baulieu_two\baulieu_four\driver_kroeber\norm_google_dist\consonni_todeschini_three\consonni_todeschini_four\gilber_wells\weighted_mut_inf\extr_dep_score_k\symmetric_extr_dep_score_k\gini_index\modified_gini\hellinger\fager\fager_mcgowan\u_cost\s_cost\r_cost\t_cost\kent_foster_one\kent_foster_two\chord_dissimilarity)
 	
@@ -550,102 +589,106 @@ function classify(string varlist, string AtClasses) {
 	}
 
 
+	
+	//Do not compute probability scores if no probability given
 	// brier/logarithmic/spherical score/power score/Psuedospherical score !! Later combine these all in the single loop!!
 
-	//Beta set to 1.5 for now
-	power_beta  = 1.5
-	pseudo_beta = 1.5
 
-	brier_vec = J(nrow, 1, 0)
-	logscore_vec = J(nrow, 1, 0)
-	power_vec = J(nrow, 1, 0)
-	pseudo_vec = J(nrow, 1, 0)
+	if(comprob == 1){
+		//Beta set to 1.5 for now
+		power_beta  = 1.5
+		pseudo_beta = 1.5
 
-
-	//Power score
-	for (i=1;i<=nrow;i++) {
-		power_vec[i] = power_vec[i] + 1/power_beta
-		for (j=1;j<=ncol;j++) {
-			if (y[i] == j) {
-				power_vec[i] = power_vec[i] + (power_beta-1)/power_beta * X[i,j]^power_beta - X[i,j]^(power_beta-1)
-			} else {
-				power_vec[i] = power_vec[i] + (power_beta-1)/power_beta * X[i,j]^power_beta
-			}
-		}
-	}
-
-	//Pseudospherical score
-	for (i=1;i<=nrow;i++) {
-		numerator_i = 0
-		denominator_i = 0
-	for (j=1;j<=ncol;j++) {
-			if (y[i] == j) {
-				numerator_i = numerator_i + X[i,j]^(pseudo_beta-1)
-				denominator_i = denominator_i + X[i,j]^pseudo_beta 
-			} else {
-				denominator_i = denominator_i + X[i,j]^pseudo_beta 
-			}
-		}
-		pseudo_vec[i] = numerator_i/(denominator_i^((pseudo_beta-1)/pseudo_beta))
-	}
-
-	spher_sum = 0
-	s_sum = 0
-	//Brier, log, zero-one and spherical score
-	for (i=1;i<=nrow;i++) {
-		spher_sum_top = 0
-		spher_sum_bot = 0
-		prob_max = rowmax(X[i,.])
-		m_count = 0
-		for (j=1;j<=ncol;j++) {
-			if (y[i] == j) {
-				brier_vec[i] = brier_vec[i] + (X[i,j]-1)^2
-				logscore_vec[i] = logscore_vec[i] + log(X[i,j])
-				spher_sum_top = spher_sum_top + X[i,j]
-				spher_sum_bot = spher_sum_bot + X[i,j]^2
-			} else {
-				brier_vec[i] = brier_vec[i] + (X[i,j]-0)^2
-				logscore_vec[i] = logscore_vec[i] + log(1 - X[i,j])
-				spher_sum_bot = spher_sum_bot + X[i,j]^2
-			}
-			if (X[i,j] == prob_max) {
-				m_count = m_count + 1
-			}
-		}
-		spher_sum = spher_sum + spher_sum_top/sqrt(spher_sum_bot)
-		if (m_count > 0) {
-			s_sum = s_sum + 1/m_count
-		} 
-	}
+		brier_vec = J(nrow, 1, 0)
+		logscore_vec = J(nrow, 1, 0)
+		power_vec = J(nrow, 1, 0)
+		pseudo_vec = J(nrow, 1, 0)
 	
-	// ranked probability score
-	rkd = 0
-	for (i=1;i<=nrow;i++) {
-		rkd_sum = 0
-		for (j=1;j<=ncol-1;j++) {
-			rkd_prob_sum = 0
-			rkd_d_sum = 0
-			for (k=1;k<=j;k++) {
-				if (y[i] == k) {
-					rkd_d_sum = rkd_d_sum + 1
+		//Power score
+		for (i=1;i<=nrow;i++) {
+			power_vec[i] = power_vec[i] + 1/power_beta
+			for (j=1;j<=ncol;j++) {
+				if (y[i] == j) {
+					power_vec[i] = power_vec[i] + (power_beta-1)/power_beta * X[i,j]^power_beta - X[i,j]^(power_beta-1)
+				} else {
+					power_vec[i] = power_vec[i] + (power_beta-1)/power_beta * X[i,j]^power_beta
 				}
-				rkd_prob_sum = rkd_prob_sum + X[i,k]
 			}
-			rkd_sum = rkd_sum + (rkd_prob_sum-rkd_d_sum)^2
 		}
-		rkd = rkd + rkd_sum
+	
+		//Pseudospherical score
+		for (i=1;i<=nrow;i++) {
+			numerator_i = 0
+			denominator_i = 0
+		for (j=1;j<=ncol;j++) {
+				if (y[i] == j) {
+					numerator_i = numerator_i + X[i,j]^(pseudo_beta-1)
+					denominator_i = denominator_i + X[i,j]^pseudo_beta 
+				} else {
+					denominator_i = denominator_i + X[i,j]^pseudo_beta 
+				}
+			}
+			pseudo_vec[i] = numerator_i/(denominator_i^((pseudo_beta-1)/pseudo_beta))
+		}
+
+		spher_sum = 0
+		s_sum = 0
+		//Brier, log, zero-one and spherical score
+		for (i=1;i<=nrow;i++) {
+			spher_sum_top = 0
+			spher_sum_bot = 0
+			prob_max = rowmax(X[i,.])
+			m_count = 0
+			for (j=1;j<=ncol;j++) {
+				if (y[i] == j) {
+					brier_vec[i] = brier_vec[i] + (X[i,j]-1)^2
+					logscore_vec[i] = logscore_vec[i] + log(X[i,j])
+					spher_sum_top = spher_sum_top + X[i,j]
+					spher_sum_bot = spher_sum_bot + X[i,j]^2
+				} else {
+					brier_vec[i] = brier_vec[i] + (X[i,j]-0)^2
+					logscore_vec[i] = logscore_vec[i] + log(1 - X[i,j])
+					spher_sum_bot = spher_sum_bot + X[i,j]^2
+				}
+				if (X[i,j] == prob_max) {
+					m_count = m_count + 1
+				}
+			}
+			spher_sum = spher_sum + spher_sum_top/sqrt(spher_sum_bot)
+			if (m_count > 0) {
+				s_sum = s_sum + 1/m_count
+			} 
+		}
+	
+		// ranked probability score
+		rkd = 0
+		for (i=1;i<=nrow;i++) {
+			rkd_sum = 0
+			for (j=1;j<=ncol-1;j++) {
+				rkd_prob_sum = 0
+				rkd_d_sum = 0
+				for (k=1;k<=j;k++) {
+					if (y[i] == k) {
+						rkd_d_sum = rkd_d_sum + 1
+					}
+					rkd_prob_sum = rkd_prob_sum + X[i,k]
+				}
+				rkd_sum = rkd_sum + (rkd_prob_sum-rkd_d_sum)^2
+			}
+			rkd = rkd + rkd_sum
+		}
+	
+		
+		brier_score = sum(brier_vec)/(nrow*2)
+		log_score = -sum(logscore_vec)/nrow
+		spherical_score = 1-spher_sum/nrow
+		power_score = sum(power_vec)/nrow
+		pseudo_score = 1 - sum(pseudo_vec)/nrow
+		zero_one_score = 1-s_sum/nrow
+	
+		ranked_probability_score = matrix_mse(running_rowsum(X) - running_rowsum(q))
+		rkd = rkd/(nrow*(ncol-1))
 	}
-
-	brier_score = sum(brier_vec)/(nrow*2)
-	log_score = -sum(logscore_vec)/nrow
-	spherical_score = 1-spher_sum/nrow
-	power_score = sum(power_vec)/nrow
-	pseudo_score = 1 - sum(pseudo_vec)/nrow
-	zero_one_score = 1-s_sum/nrow
-
-	ranked_probability_score = matrix_mse(running_rowsum(X) - running_rowsum(q))
-	rkd = rkd/(nrow*(ncol-1))
-
 
 	tot = sum(conf_mat)
  	all_pos = colsum(conf_mat)'
@@ -673,16 +716,18 @@ function classify(string varlist, string AtClasses) {
  	rowname = "y=" :+ strofreal(allcat) 
  	print_matrix(result, rowname, colname,., ., ., 4, ., .)
 
-	displayas("txt")
-	printf("\nProbabilistic Forecasts metrics\n")
-	printf("Brier score              = {bf:%9.4f} \n", brier_score)
-	printf("Power score              = {bf:%9.4f} \n", power_score)
-	printf("Logarithmic score        = {bf:%9.4f} \n", log_score)
-	printf("Spherical score          = {bf:%9.4f} \n", spherical_score)
-	printf("Pseudo spherical score   = {bf:%9.4f} \n", pseudo_score)
-	printf("Zero-one score           = {bf:%9.4f} \n", zero_one_score)
-//  	printf("Ranked probability score = {bf:%9.4f} \n", ranked_probability_score)
-	printf("Ranked probability score = {bf:%9.4f} \n", rkd)
+	if(comprod == 1){
+		displayas("txt")
+		printf("\nProbabilistic Forecasts metrics\n")
+		printf("Brier score              = {bf:%9.4f} \n", brier_score)
+		printf("Power score              = {bf:%9.4f} \n", power_score)
+		printf("Logarithmic score        = {bf:%9.4f} \n", log_score)
+		printf("Spherical score          = {bf:%9.4f} \n", spherical_score)
+		printf("Pseudo spherical score   = {bf:%9.4f} \n", pseudo_score)
+		printf("Zero-one score           = {bf:%9.4f} \n", zero_one_score)
+//  		printf("Ranked probability score = {bf:%9.4f} \n", ranked_probability_score)
+		printf("Ranked probability score = {bf:%9.4f} \n", rkd)
+	}
 	
  	displayas("txt")
  	printf("\nMulticlass metrics\n")
@@ -737,6 +782,7 @@ function classify(string varlist, string AtClasses) {
 		printrows = 1
 	}
 
+	
 	print_vector("Precision                = ", precision_k[printrows::ncat])
 	print_vector("Gilbert Score            = ", gilbert_score[printrows::ncat])
 // 	print_vector("Negative predicted value = ", nega_pred_val_k[printrows::ncat])
