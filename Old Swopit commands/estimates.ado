@@ -1,8 +1,11 @@
 version 14
 mata
-function classify(string varlist ,| string AtClasses, string matrixname) {
+function classify(string varlist ,| string AtClasses, string power, string pseudo, string fbeta, string matrixname) {
 
-
+	power = strtoreal(power)
+	pseudo = strtoreal(pseudo)
+	fbeta  = strtoreal(fbeta)
+	
 	if( AtClasses == "Contingency"){
 
 		conf_mat = st_matrix(matrixname)
@@ -25,7 +28,6 @@ function classify(string varlist ,| string AtClasses, string matrixname) {
 			comprob = 1
 
 			allcat = uniqrows(y)
-			allcat
 			ncat = rows(allcat)
 	
 			list = tokens(AtClasses)
@@ -345,7 +347,7 @@ function classify(string varlist ,| string AtClasses, string matrixname) {
 	fowlkes_mallows_k = true_pos_k :/ sqrt(((true_pos_k :+ false_neg_k):*(true_pos_k :+ false_pos_k)))
 	f1_score_k = 2*true_pos_k:/(2*true_pos_k :+ false_pos_k :+ false_neg_k)
 	f1_score_k_c00 = 2*true_neg_k:/(2*true_neg_k :+ false_pos_k :+ false_neg_k)
-	beta = 0.5 // we should actually ask the user for this value
+	beta = fbeta // we should actually ask the user for this value
 	fb_score_k = ((1+beta^2):*precision_k:*recall_k):/(beta^2:*precision_k :+ recall_k)
 	matthew_corr_k = (true_pos_k:*true_neg_k :- false_pos_k:*false_neg_k):/(sqrt((true_pos_k:+false_pos_k):*(true_pos_k:+false_neg_k):*(true_neg_k:+false_pos_k):*(true_neg_k:+false_neg_k)))
 	threat_k = true_pos_k :/ (true_pos_k :+ false_neg_k :+ false_pos_k)
@@ -596,8 +598,8 @@ function classify(string varlist ,| string AtClasses, string matrixname) {
 
 	if(comprob == 1){
 		//Beta set to 1.5 for now
-		power_beta  = 1.5
-		pseudo_beta = 1.5
+		power_beta  = power
+		pseudo_beta = pseudo
 
 		brier_vec = J(nrow, 1, 0)
 		logscore_vec = J(nrow, 1, 0)
